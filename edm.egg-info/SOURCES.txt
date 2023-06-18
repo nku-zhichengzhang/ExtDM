@@ -1,0 +1,6 @@
+setup.py
+edm.egg-info/PKG-INFO
+edm.egg-info/SOURCES.txt
+edm.egg-info/dependency_links.txt
+edm.egg-info/requires.txt
+edm.egg-info/top_level.txt

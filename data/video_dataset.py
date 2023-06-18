@@ -1,0 +1,143 @@
+# loading video dataset for training and testing
+import os
+import torch
+
+import numpy as np
+import torch.utils.data as data
+from skimage.color import gray2rgb
+
+import cv2
+import torchvision.transforms.functional as F
+from torchvision import transforms
+
+from data.h5 import HDF5Dataset
+
+def resize(im, desired_size, interpolation):
+    old_size = im.shape[:2]
+    ratio = float(desired_size)/max(old_size)
+    new_size = tuple(int(x*ratio) for x in old_size)
+
+    im = cv2.resize(im, (new_size[1], new_size[0]), interpolation=interpolation)
+    delta_w = desired_size - new_size[1]
+    delta_h = desired_size - new_size[0]
+    top, bottom = delta_h//2, delta_h-(delta_h//2)
+    left, right = delta_w//2, delta_w-(delta_w//2)
+
+    color = [0, 0, 0]
+    new_im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+
+    return new_im
+
+class VideoDataset(data.Dataset):
+    def __init__(self, 
+        data_dir, 
+        type='train',
+        total_videos=-1, 
+        num_frames=40, 
+        image_size=64, 
+        mean=(0, 0, 0), 
+        color_jitter=None, 
+        random_horizontal_flip=False
+    ):
+        super(VideoDataset, self).__init__()
+        self.mean = mean
+        self.num_frames = num_frames
+        self.image_size = image_size
+        self.total_videos = total_videos
+        self.random_horizontal_flip = random_horizontal_flip
+        self.jitter = transforms.ColorJitter(hue=color_jitter) if color_jitter else None
+        self.videos_ds = HDF5Dataset(os.path.join(data_dir, type))
+
+    def __len__(self):
+        if self.total_videos > 0:
+            return self.total_videos
+        else:
+            return len(self.videos_ds)
+
+    def len_of_vid(self, index):
+        video_index = index % self.__len__()
+        shard_idx, idx_in_shard = self.videos_ds.get_indices(video_index)
+        with self.videos_ds.opener(self.videos_ds.shard_paths[shard_idx]) as f:
+            video_len = f['len'][str(idx_in_shard)][()]
+        return video_len
+
+    def max_index(self):
+        return len(self.videos_ds)
+
+    def __getitem__(self, index, time_idx=0):
+        video_index = round(index / (self.__len__() - 1) * (self.max_index() - 1))
+        shard_idx, idx_in_shard = self.videos_ds.get_indices(video_index)
+        
+        prefinals = []
+        flip_p = np.random.randint(2) == 0 if self.random_horizontal_flip else 0
+        with self.videos_ds.opener(self.videos_ds.shard_paths[shard_idx]) as f:
+            total_num_frames = f['len'][str(idx_in_shard)][()]
+
+            # sample frames
+            if total_num_frames > self.num_frames:
+                # sampling start frames
+                time_idx = np.random.choice(total_num_frames - self.num_frames)
+            # read frames
+            for i in range(time_idx, min(time_idx + self.num_frames, total_num_frames)):
+                img = f[str(idx_in_shard)][str(i)][()]
+                if len(img.shape) == 2 or img.shape[2] == 1:
+                    img = gray2rgb(img)
+                arr = transforms.RandomHorizontalFlip(flip_p)(transforms.ToTensor()(img))
+                prefinals.append(arr)
+
+        data = torch.stack(prefinals)
+        if self.jitter:
+            data = self.jitter(data)
+        return data, video_index
+
+if __name__ == "__main__":
+    import mediapy as media
+    from einops import rearrange
+
+    # dataset_root = "/mnt/sda/hjy/kth/processed/"
+
+    dataset_roots = [
+        # "/mnt/sda/hjy/SMMNIST/SMMNIST_h5",                        # train & test
+        # "/mnt/sda/hjy/kth/processed/",                            # train & valid
+        # "/mnt/sda/hjy/bair/mcvd-pytorch/datasets/BAIR/BAIR_h5",   # train & test
+        # "/mnt/sda/hjy/cityscapes/cityscapes_processed/",          # train & test
+        "/mnt/sda/hjy/fdm/CARLA_Town_01_h5",                      # train & test
+    ]
+
+    for dataset_root in dataset_roots:
+        dataset_type = 'train'
+        train_dataset = VideoDataset(dataset_root, dataset_type)
+        print(len(train_dataset))
+        print(train_dataset[10][0].shape)
+        print(torch.min(train_dataset[10][0]), torch.max(train_dataset[10][0]))
+        print(train_dataset[10][1])
+
+        # dataset_type = 'valid'
+        dataset_type = 'test'
+        test_dataset = VideoDataset(dataset_root, dataset_type, total_videos=256)
+        print(len(test_dataset))
+        print(test_dataset[10][0].shape)
+        print(torch.min(test_dataset[10][0]), torch.max(test_dataset[10][0]))
+        print(test_dataset[10][1])
+
+        media.show_videos(
+            [
+                rearrange(train_dataset[10][0], 't c h w -> t h w c').numpy(),
+                rearrange(test_dataset[10][0], 't c h w -> t h w c').numpy()
+            ],
+            fps = 20
+        )
+
+        """
+        60000
+        torch.Size([40, 3, 64, 64])
+        tensor(0.) tensor(1.)
+        10
+
+        256
+        torch.Size([40, 3, 64, 64])
+        tensor(0.) tensor(1.)
+        10
+        """
+
+

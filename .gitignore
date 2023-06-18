@@ -1,0 +1,3 @@
+logs_training/*
+logs_validation/*
+__pycache__
