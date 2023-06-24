@@ -15,75 +15,77 @@ import yaml
 
 
 class FlowDiffusion(nn.Module):
-    def __init__(self, img_size=32, num_frames=40, sampling_timesteps=250,
-                 null_cond_prob=0.1, ddim_sampling_eta=1., timesteps=1000,
-                 dim_mults=(1, 2, 4, 8),
-                  is_train=True,
-                 only_use_flow=True,
-                 use_residual_flow=False,
-                 learn_null_cond=False,
-                 use_deconv=True,
-                 padding_mode="zeros",
-                 pretrained_pth="",
-                 config_path="", 
-                 cond_num=0,
-                 pred_num=0):
+    def __init__(self, 
+            config="",
+            pretrained_pth="",
+            is_train=True,
+            ddim_sampling_eta=1., 
+            timesteps=1000,
+            dim_mults=(1, 2, 4, 8),
+            learn_null_cond=False,
+            use_deconv=True,
+            padding_mode="zeros",
+        ):
         super(FlowDiffusion, self).__init__()
-        self.use_residual_flow = use_residual_flow
-        self.only_use_flow = only_use_flow
+        
+        flow_params = config['flow_params']
+        diffusion_params = config['diffusion_params']
+
+        self.use_residual_flow = diffusion_params['use_residual_flow']
+        self.only_use_flow = diffusion_params['only_use_flow']
 
         if pretrained_pth != "":
             checkpoint = torch.load(pretrained_pth)
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
 
-        self.generator = Generator(num_regions=config['model_params']['num_regions'],
-                                   num_channels=config['model_params']['num_channels'],
-                                   revert_axis_swap=config['model_params']['revert_axis_swap'],
-                                   **config['model_params']['generator_params']).cuda()
+        self.generator = Generator(num_regions=flow_params['num_regions'],
+                                   num_channels=flow_params['num_channels'],
+                                   revert_axis_swap=flow_params['revert_axis_swap'],
+                                   **flow_params['generator_params']).cuda()
         if pretrained_pth != "":
             self.generator.load_state_dict(checkpoint['generator'])
             self.generator.eval()
             self.set_requires_grad(self.generator, False)
 
-        self.region_predictor = RegionPredictor(num_regions=config['model_params']['num_regions'],
-                                                num_channels=config['model_params']['num_channels'],
-                                                estimate_affine=config['model_params']['estimate_affine'],
-                                                **config['model_params']['region_predictor_params']).cuda()
+        self.region_predictor = RegionPredictor(num_regions=flow_params['num_regions'],
+                                                num_channels=flow_params['num_channels'],
+                                                estimate_affine=flow_params['estimate_affine'],
+                                                **flow_params['region_predictor_params']).cuda()
         if pretrained_pth != "":
             self.region_predictor.load_state_dict(checkpoint['region_predictor'])
             self.region_predictor.eval()
             self.set_requires_grad(self.region_predictor, False)
 
-        self.bg_predictor = BGMotionPredictor(num_channels=config['model_params']['num_channels'],
-                                              **config['model_params']['bg_predictor_params'])
+        self.bg_predictor = BGMotionPredictor(num_channels=flow_params['num_channels'],
+                                              **flow_params['bg_predictor_params'])
         if pretrained_pth != "":
             self.bg_predictor.load_state_dict(checkpoint['bg_predictor'])
             self.bg_predictor.eval()
             self.set_requires_grad(self.bg_predictor, False)
 
-        self.unet = Unet3D(dim=64,
-                           channels=3 + 256,
-                           out_grid_dim=2,
-                           out_conf_dim=1,
-                           dim_mults=dim_mults,
-                           use_bert_text_cond=False,
-                           learn_null_cond=learn_null_cond,
-                           use_final_activation=False,
-                           use_deconv=use_deconv,
-                           padding_mode=padding_mode,
-                           cond_num=cond_num,
-                           pred_num=pred_num)
+        self.unet = Unet3D(
+            dim=64,
+            channels=3 + 256,
+            out_grid_dim=2,
+            out_conf_dim=1,
+            dim_mults=dim_mults,
+            use_bert_text_cond=False,
+            learn_null_cond=learn_null_cond,
+            use_final_activation=False,
+            use_deconv=use_deconv,
+            padding_mode=padding_mode,
+            cond_num=diffusion_params['condition_frames'],
+            pred_num=diffusion_params['prediction_frames']
+        )
 
         self.diffusion = GaussianDiffusion(
             self.unet,
-            image_size=img_size,
-            num_frames=num_frames,
-            sampling_timesteps=sampling_timesteps,
+            image_size=config['dataset_params']['frame_shape']//2,
+            num_frames=diffusion_params['condition_frames'] + diffusion_params['prediction_frames'],
+            sampling_timesteps=diffusion_params['sampling_timesteps'],
             timesteps=timesteps,  # number of steps
-            loss_type='l2',  # L1 or L2
+            loss_type=diffusion_params['loss_type'],  # L1 or L2
             use_dynamic_thres=True,
-            null_cond_prob=null_cond_prob,
+            null_cond_prob=diffusion_params['null_cond_prob'],
             ddim_sampling_eta=ddim_sampling_eta,
         )
 

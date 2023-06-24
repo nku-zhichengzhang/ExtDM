@@ -14,7 +14,6 @@ import json_tricks as json
 
 from data.video_dataset import VideoDataset
 from model.LFAE.flow_autoenc import FlowAE
-from model.LFAE.util import Visualizer
 from utils.meter import AverageMeter
 
 def setup_seed(seed):
@@ -30,40 +29,38 @@ if __name__ == "__main__":
     cudnn.benchmark = True
 
     parser = argparse.ArgumentParser(description="Flow Autoencoder")
-    parser.add_argument("--postfix", 
-                        default="")
     parser.add_argument("--save-video", 
                         default=True)
-    parser.add_argument("--cond-frames", 
+    parser.add_argument("--cond_frames", 
                         type=int, 
                         default=10)
-    parser.add_argument("--pred-frames", 
+    parser.add_argument("--pred_frames", 
                         type=int, 
                         default=40)
-    parser.add_argument("--num-videos", 
+    parser.add_argument("--num_videos", 
                         type=int, 
                         default=256)
-    parser.add_argument("--batch-size", 
+    parser.add_argument("--batch_size", 
                         type=int, 
                         default=64,
                         help="Number of images sent to the network in one step.")
-    parser.add_argument("--input-size", 
-                        type=str, 
+    parser.add_argument("--input_size", 
+                        type=int, 
                         default=128,
-                        help="Comma-separated string with height and width of images.")
+                        help="height and width of videos")
     parser.add_argument("--random-seed", 
                         type=int, 
                         default=1234,
                         help="Random seed to have reproducible results.")
-    parser.add_argument("--restore-from", 
+    parser.add_argument("--restore_from", 
                         default="/mnt/sda/hjy/training_logs/cityscapes128/snapshots/RegionMM.pth")
-    parser.add_argument("--config-path", 
+    parser.add_argument("--config_path", 
                         default="./config/carla128.yaml")
-    parser.add_argument("--root-dir", 
+    parser.add_argument("--log_dir", 
                         default="./logs_validation/flow/flowautoenc_video_carla")
-    parser.add_argument("--data-dir", 
+    parser.add_argument("--data_dir", 
                         default="/mnt/sda/hjy/fdm/CARLA_Town_01_h5")
-    parser.add_argument("--data-type", 
+    parser.add_argument("--data_type", 
                         default="test")
     parser.add_argument("--num-workers", 
                         default=8)
@@ -78,11 +75,10 @@ if __name__ == "__main__":
 
     MEAN = (0.0, 0.0, 0.0)
 
-    CKPT_DIR = os.path.join(args.root_dir, "flowae-res"+args.postfix)
-    os.makedirs(CKPT_DIR, exist_ok=True)
+    ckpt_dir = os.path.join(args.log_dir, "flowae_result")
+    os.makedirs(ckpt_dir, exist_ok=True)
 
-    json_path = os.path.join(CKPT_DIR, "loss%d%s.json" % (args.num_videos, args.postfix))
-    visualizer = Visualizer()
+    json_path = os.path.join(ckpt_dir, "loss%d.json" % (args.num_videos))
 
     NUM_ITER = args.num_videos // args.batch_size
 
@@ -104,7 +100,7 @@ if __name__ == "__main__":
 
     setup_seed(args.random_seed)
 
-    validloader = data.DataLoader(VideoDataset(
+    valid_dataloader = data.DataLoader(VideoDataset(
                                     data_dir=args.data_dir,
                                     type=args.data_type, 
                                     image_size=args.input_size,
@@ -132,7 +128,7 @@ if __name__ == "__main__":
     origin_videos = []
     result_videos = []
 
-    for i_iter, batch in enumerate(validloader):
+    for i_iter, batch in enumerate(valid_dataloader):
         if i_iter >= NUM_ITER:
             break
 
@@ -157,14 +153,13 @@ if __name__ == "__main__":
 
         batch_time.update(timeit.default_timer() - iter_end)
 
-        nf = real_vids.size(2) # PRED_FRAMES
-        assert nf == args.pred_frames
+        assert real_vids.size(2) == args.pred_frames
 
         out_img_list = []
         warped_img_list = []
         warped_grid_list = []
         conf_map_list = []
-        for frame_idx in range(nf):
+        for frame_idx in range(real_vids.size(2)):
             dri_imgs = real_vids[:, :, frame_idx, :, :]
             with torch.no_grad():
                 model.set_train_input(ref_img=ref_imgs, dri_img=dri_imgs)
@@ -178,6 +173,19 @@ if __name__ == "__main__":
         warped_img_list_tensor = torch.stack(warped_img_list, dim=0)
         warped_grid_list_tensor = torch.stack(warped_grid_list, dim=0)
         conf_map_list_tensor = torch.stack(conf_map_list, dim=0)
+
+        from utils.visualize import LFAE_visualize
+        LFAE_visualize(
+            ground=real_vids,
+            prediction=out_img_list_tensor,
+            deformed=warped_img_list_tensor,
+            optical_flow=warped_grid_list_tensor,
+            occlusion_map=conf_map_list_tensor,
+            video_names=video_names,
+            save_path=f"{args.log_dir}/flowae_result",
+            save_num=8,
+            image_size=ref_imgs.shape[-1]
+        )
 
         # out_img_list_tensor      [40, 8, 3, 64, 64] 
         # warped_img_list_tensor   [40, 8, 3, 64, 64]
@@ -210,13 +218,14 @@ if __name__ == "__main__":
     if args.save_video:      
         from utils.visualize import visualize
         visualize(
-            save_path=args.root_dir,
+            save_path=f"{args.log_dir}/video_result",
             origin=origin_videos,
             result=result_videos,
-            save_pic_num=8, # 尽量不大于8
-            grid_nrow=8,
-            save_pic_row=False,
+            save_pic_num=8,
+            grid_nrow=4,
+            save_pic_row=True,
             save_gif=False,
+            save_gif_grid=True,
             cond_frame_num=args.cond_frames,   
         )
 

@@ -1,170 +1,290 @@
-# train a LFAE
-# this code is based on RegionMM (MRAA): https://github.com/snap-research/articulated-animation
-import os.path
-import torch
-from torch.utils.data import DataLoader
-from model.LFAE.modules.model import ReconstructionModel
-from torch.optim.lr_scheduler import MultiStepLR
-from model.LFAE.sync_batchnorm import DataParallelWithCallback
-from model.two_frames_dataset import DatasetRepeater
-import timeit
-from model.LFAE.modules.util import Visualizer
-import imageio
-import math
+def train(
+        config, 
+        dataset_params,
+        train_params, 
+        log_dir, 
+        checkpoint,
+        args.device_ids
+    ):
 
-from utils.meter import AverageMeter
-
-def train(config, generator, region_predictor, bg_predictor, checkpoint, log_dir, dataset, device_ids):
     print(config)
-    train_params = config['train_params']
 
-    optimizer = torch.optim.Adam(list(generator.parameters()) +
-                                 list(region_predictor.parameters()) +
-                                 list(bg_predictor.parameters()), lr=train_params['lr'], betas=(0.5, 0.999))
+    train_dataset = VideoDataset(
+        data_dir=dataset_params['root_dir'],
+        type=dataset_params['train_params']['type'], 
+        image_size=dataset_params['frame_shape'],
+        num_frames=dataset_params['train_params']['cond_frames'] + dataset_params['train_params']['pred_frames'],
+        mean=(0.0, 0.0, 0.0)
+    )
+    
+    valid_dataset = VideoDataset(
+        data_dir=dataset_params['root_dir'],
+        type=dataset_params['valid_params']['type'], 
+        image_size=dataset_params['frame_shape'],
+        num_frames=dataset_params['valid_params']['cond_frames'] + dataset_params['valid_params']['pred_frames'], 
+        mean=(0.0, 0.0, 0.0),
+        total_videos=dataset_params['valid_params']['total_videos'],
+    )
+
+    # FIXME: 可以改用adamw试试
+    optimizer = torch.optim.Adam(
+        model.diffusion.parameters(), 
+        lr=train_params['lr'], 
+        betas=(0.9, 0.99)
+    )
 
     start_epoch = 0
     start_step = 0
+
     if checkpoint is not None:
-        ckpt = torch.load(checkpoint)
-        if config["set_start"]:
-            start_step = int(math.ceil(ckpt['example'] / config['train_params']['batch_size']))
-            start_epoch = ckpt['epoch']
-
-            print("ckpt['example']", ckpt['example'])
-            print("start_step", start_step)
-
-        #     ckpt['generator']['pixelwise_flow_predictor.down.weight'] = generator.pixelwise_flow_predictor.down.weight
-        #     ckpt['region_predictor']['pixelwise_flow_predictor.down.weight'] = region_predictor.pixelwise_flow_predictor.down.weight
-            
-        # ckpt['generator']['pixelwise_flow_predictor.down.weight'] = generator.pixelwise_flow_predictor.down.weight
-        # ckpt['region_predictor']['down.weight'] = region_predictor.down.weight
-        
-        generator.load_state_dict(ckpt['generator'])
-        region_predictor.load_state_dict(ckpt['region_predictor'])
-        bg_predictor.load_state_dict(ckpt['bg_predictor'])
-        
-        if 'optimizer' in list(ckpt.keys()):
-            try:
-                optimizer.load_state_dict(ckpt['optimizer'])
-            except:
-                optimizer.load_state_dict(ckpt['optimizer'].state_dict())
-
-    scheduler = MultiStepLR(optimizer, train_params['epoch_milestones'], gamma=0.1, last_epoch=start_epoch - 1)
-    if 'num_repeats' in train_params or train_params['num_repeats'] != 1:
-        dataset = DatasetRepeater(dataset, train_params['num_repeats'])
-
-    dataloader = DataLoader(dataset, batch_size=train_params['batch_size'], shuffle=True,
-                            num_workers=train_params['dataloader_workers'], drop_last=True)
-
-    model = ReconstructionModel(region_predictor, bg_predictor, generator, train_params)
-
-    visualizer = Visualizer(**config['visualizer_params'])
-
-    if torch.cuda.is_available():
-        if ('use_sync_bn' in train_params) and train_params['use_sync_bn']:
-            model = DataParallelWithCallback(model, device_ids=device_ids)
+        if os.path.isfile(checkpoint):
+            print("=> loading checkpoint '{}'".format(checkpoint))
+            checkpoint = torch.load(checkpoint)
+            if config["set_start"]:
+                start_step = int(math.ceil(checkpoint['example'] / train_params['batch_size']))
+            model_ckpt = model.diffusion.state_dict()
+            for name, _ in model_ckpt.items():
+                model_ckpt[name].copy_(checkpoint['diffusion'][name])
+            model.diffusion.load_state_dict(model_ckpt)
+            print("=> loaded checkpoint '{}'".format(checkpoint))
+            if "optimizer_diff" in list(checkpoint.keys()):
+                optimizer_diff.load_state_dict(checkpoint['optimizer_diff'])
         else:
-            model = torch.nn.DataParallel(model, device_ids=device_ids)
+            print("=> no checkpoint found at '{}'".format(checkpoint))
+    else:
+        print("NO checkpoint found!")
 
-    # rewritten by nhm
+    scheduler = MultiStepLR(optimizer_diff, config['diffusion_params']['epoch_milestones'], gamma=0.1, last_epoch=start_epoch - 1)
+
+    
+    train_dataloader = data.DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True, 
+        num_workers=args.num_workers,
+        pin_memory=True
+    )
+    valid_dataloader = data.DataLoader(,
+                                batch_size=args.valid_batch_size,
+                                shuffle=True, num_workers=args.num_workers,
+                                pin_memory=True)
+
+    diffusion = FlowDiffusion(
+        config=config,
+        pretrained_pth=args.checkpoint,
+        is_train=True,
+    )
+
     batch_time = AverageMeter()
     data_time = AverageMeter()
 
-    total_losses = AverageMeter()
-    losses_perc = AverageMeter()
-    losses_equiv_shift = AverageMeter()
-    losses_equiv_affine = AverageMeter()
+    losses = AverageMeter()
+    losses_rec = AverageMeter()
+    losses_warp = AverageMeter()
 
     cnt = 0
     epoch_cnt = start_epoch
     actual_step = start_step
+    start_epoch = int(math.ceil((start_step * args.batch_size)/NUM_EXAMPLES_PER_EPOCH))
+    
     final_step = config["num_step_per_epoch"] * train_params["max_epochs"]
 
+    print("epoch %d, lr= %.7f" % (epoch_cnt, optimizer_diff.param_groups[0]["lr"]))
+    fvd_best = 1e5
+    
     while actual_step < final_step:
         iter_end = timeit.default_timer()
 
-        for i_iter, x in enumerate(dataloader):
+        for i_iter, batch in enumerate(train_dataloader):
             actual_step = int(start_step + cnt)
             data_time.update(timeit.default_timer() - iter_end)
-            optimizer.zero_grad()
-            losses, generated = model(x)
-            loss_values = [val.mean() for val in losses.values()]
-            loss = sum(loss_values)
-            loss.backward()
-            optimizer.step()
+
+            real_vids, real_names = batch
+            # use first frame of each video as reference frame
+
+            real_vids = rearrange(real_vids, 'b t c h w -> b c t h w')
+
+            print(real_vids.shape)
+            # torch.Size([bs, length, c, h, w])
+            ref_imgs = real_vids[:, :, CONDITION_FRAMES-1, :, :].clone().detach()
+            bs = real_vids.size(0)
+
+            model.set_train_input(cond_frame_num=CONDITION_FRAMES, train_frame_num=PRED_TRAIN_FRAMES, tot_frame_num=CONDITION_FRAMES + PRED_TRAIN_FRAMES)
+            ret = model.optimize_parameters(real_vids[:,:,:CONDITION_FRAMES + PRED_TRAIN_FRAMES].cuda(), optimizer_diff)
 
             batch_time.update(timeit.default_timer() - iter_end)
             iter_end = timeit.default_timer()
 
-            bs = x['source'].size(0)
-            total_losses.update(loss, bs)
-            losses_perc.update(loss_values[0], bs)
-            losses_equiv_shift.update(loss_values[1], bs)
-            losses_equiv_affine.update(loss_values[2], bs)
+            losses.update(ret['loss'], bs)
+            losses_rec.update(ret['rec_loss'], bs)
+            losses_warp.update(ret['rec_warp_loss'], bs)
 
-            if actual_step % train_params["print_freq"] == 0:
+            if actual_step % args.print_freq == 0:
                 print('iter: [{0}]{1}/{2}\t'
-                      'loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'loss_perc {loss_perc.val:.4f} ({loss_perc.avg:.4f})\n'
-                      'loss_shift {loss_shift.val:.4f} ({loss_shift.avg:.4f})\t'
-                      'loss_affine {loss_affine.val:.4f} ({loss_affine.avg:.4f})\t'
-                      'time {batch_time.val:.4f} ({batch_time.avg:.4f})'
+                      'loss {loss.val:.7f} ({loss.avg:.7f})\t'
+                      'loss_rec {loss_rec.val:.4f} ({loss_rec.avg:.4f})\t'
+                      'loss_warp {loss_warp.val:.4f} ({loss_warp.avg:.4f})'
                     .format(
-                    cnt, actual_step, final_step,
-                    loss=total_losses,
-                    loss_perc=losses_perc,
-                    loss_shift=losses_equiv_shift,
-                    loss_affine=losses_equiv_affine,
-                    batch_time=batch_time
+                    cnt, actual_step, args.final_step,
+                    batch_time=batch_time,
+                    data_time=data_time,
+                    loss=losses,
+                    loss_rec=losses_rec,
+                    loss_warp=losses_warp,
                 ))
-            if actual_step % train_params['save_img_freq'] == 0:
-                save_image = visualizer.visualize(x['driving'], x['source'], generated, index=0)
-                save_name = 'B' + format(train_params["batch_size"], "04d") + '_S' + format(actual_step, "06d") \
-                            + '_' + str(x["frame"][0][0].item()) + '_to_' + str(x["frame"][0][1].item()) +'.png'
-                save_file = os.path.join(config["imgshots"], save_name)
-                imageio.imsave(save_file, save_image)
 
-            if actual_step % config["save_ckpt_freq"] == 0 and cnt != 0:
-                print('taking snapshot...')
-                torch.save({'example': actual_step * train_params["batch_size"],
-                            'epoch': epoch_cnt,
-                            'generator': generator.state_dict(),
-                            'bg_predictor': bg_predictor.state_dict(),
-                            'region_predictor': region_predictor.state_dict(),
-                            'optimizer': optimizer.state_dict()},
-                           os.path.join(config["snapshots"], 'RegionMM_' + format(train_params["batch_size"], "04d") +
-                                        '_S' + format(actual_step, "06d") + '.pth'))
+            if actual_step % args.save_img_freq == 0:
+                msk_size = ref_imgs.shape[-1]
+                save_src_img = sample_img(ref_imgs)
+                save_tar_img = sample_img(real_vids[:, :, CONDITION_FRAMES+PRED_TRAIN_FRAMES//2, :, :])
+                save_real_out_img = sample_img(ret['real_out_vid'][:, :, CONDITION_FRAMES+PRED_TRAIN_FRAMES//2, :, :])
+                save_real_warp_img = sample_img(ret['real_warped_vid'][:, :, CONDITION_FRAMES+PRED_TRAIN_FRAMES//2, :, :])
+                save_fake_out_img = sample_img(ret['fake_out_vid'][:, :, PRED_TRAIN_FRAMES//2, :, :])
+                save_fake_warp_img = sample_img(ret['fake_warped_vid'][:, :, PRED_TRAIN_FRAMES//2, :, :])
+                save_real_grid = grid2fig(ret['real_vid_grid'][0, :, CONDITION_FRAMES+PRED_TRAIN_FRAMES//2].permute((1, 2, 0)).data.cpu().numpy(),
+                                          grid_size=32, img_size=msk_size)
+                save_fake_grid = grid2fig(ret['fake_vid_grid'][0, :, PRED_TRAIN_FRAMES//2].permute((1, 2, 0)).data.cpu().numpy(),
+                                          grid_size=32, img_size=msk_size)
+                save_real_conf = conf2fig(ret['real_vid_conf'][0, :, CONDITION_FRAMES+PRED_TRAIN_FRAMES//2], img_size=INPUT_SIZE)
+                save_fake_conf = conf2fig(ret['fake_vid_conf'][0, :, PRED_TRAIN_FRAMES//2], img_size=INPUT_SIZE)
+                new_im = Image.new('RGB', (msk_size * 5, msk_size * 2))
+                new_im.paste(Image.fromarray(save_src_img, 'RGB'), (0, 0))
+                new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, msk_size))
+                new_im.paste(Image.fromarray(save_real_out_img, 'RGB'), (msk_size, 0))
+                new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size, msk_size))
+                new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size * 2, 0))
+                new_im.paste(Image.fromarray(save_fake_warp_img, 'RGB'), (msk_size * 2, msk_size))
+                new_im.paste(Image.fromarray(save_real_grid, 'RGB'), (msk_size * 3, 0))
+                new_im.paste(Image.fromarray(save_fake_grid, 'RGB'), (msk_size * 3, msk_size))
+                new_im.paste(Image.fromarray(save_real_conf, 'L'), (msk_size * 4, 0))
+                new_im.paste(Image.fromarray(save_fake_conf, 'L'), (msk_size * 4, msk_size))
+                new_im_name = 'B' + format(args.batch_size, "04d") + '_S' + format(actual_step, "06d") \
+                              + '_' + format(real_names[0], "06d") + ".png"
+                new_im_file = os.path.join(args.img_dir, new_im_name)
+                new_im.save(new_im_file)
 
-            if actual_step % train_params["update_ckpt_freq"] == 0 and cnt != 0:
-                print('updating snapshot...')
-                torch.save({'example': actual_step * train_params["batch_size"],
-                            'epoch': epoch_cnt,
-                            'generator': generator.state_dict(),
-                            'bg_predictor': bg_predictor.state_dict(),
-                            'region_predictor': region_predictor.state_dict(),
-                            'optimizer': optimizer.state_dict()},
-                           os.path.join(config["snapshots"], 'RegionMM.pth'))
+            if actual_step % args.save_vid_freq == 0:
+                print("saving video...")
+                # num_frames = real_vids.size(2)
+                msk_size = ref_imgs.shape[-1]
+                new_im_arr_list = []
+                save_src_img = sample_img(ref_imgs)
+                for nf in range(CONDITION_FRAMES + PRED_TRAIN_FRAMES):
+                    save_tar_img = sample_img(real_vids[:, :, nf, :, :])
+                    save_real_out_img = sample_img(ret['real_out_vid'][:, :, nf, :, :])
+                    save_real_warp_img = sample_img(ret['real_warped_vid'][:, :, nf, :, :])
+                    save_fake_out_img = sample_img(ret['fake_out_vid'][:, :, nf - CONDITION_FRAMES, :, :])
+                    save_fake_warp_img = sample_img(ret['fake_warped_vid'][:, :, nf - CONDITION_FRAMES, :, :])
+                    save_real_grid = grid2fig(
+                        ret['real_vid_grid'][0, :, nf].permute((1, 2, 0)).data.cpu().numpy(),
+                        grid_size=32, img_size=msk_size)
+                    save_fake_grid = grid2fig(
+                        ret['fake_vid_grid'][0, :, nf - CONDITION_FRAMES].permute((1, 2, 0)).data.cpu().numpy(),
+                        grid_size=32, img_size=msk_size)
+                    save_real_conf = conf2fig(ret['real_vid_conf'][0, :, nf], img_size=INPUT_SIZE)
+                    save_fake_conf = conf2fig(ret['fake_vid_conf'][0, :, nf - CONDITION_FRAMES], img_size=INPUT_SIZE)
+                    new_im = Image.new('RGB', (msk_size * 5, msk_size * 2))
+                    new_im.paste(Image.fromarray(save_src_img, 'RGB'), (0, 0))
+                    new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, msk_size))
+                    new_im.paste(Image.fromarray(save_real_out_img, 'RGB'), (msk_size, 0))
+                    new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size, msk_size))
+                    new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size * 2, 0))
+                    new_im.paste(Image.fromarray(save_fake_warp_img, 'RGB'), (msk_size * 2, msk_size))
+                    new_im.paste(Image.fromarray(save_real_grid, 'RGB'), (msk_size * 3, 0))
+                    new_im.paste(Image.fromarray(save_fake_grid, 'RGB'), (msk_size * 3, msk_size))
+                    new_im.paste(Image.fromarray(save_real_conf, 'L'), (msk_size * 4, 0))
+                    new_im.paste(Image.fromarray(save_fake_conf, 'L'), (msk_size * 4, msk_size))
+                    new_im_arr = np.array(new_im)
+                    new_im_arr_list.append(new_im_arr)
+                new_vid_name = 'B' + format(args.batch_size, "04d") + '_S' + format(actual_step, "06d") \
+                                + '_' + format(real_names[0], "06d") + ".gif"
+                new_vid_file = os.path.join(VIDSHOT_DIR, new_vid_name)
+                imageio.mimsave(new_vid_file, new_im_arr_list)
 
-            if actual_step >= final_step:
+            # sampling
+            if actual_step % args.sample_vid_freq == 0:#  and cnt != 0
+                print("sampling video...")
+                model.set_sample_input(cond_frame_num=CONDITION_FRAMES, tot_frame_num=CONDITION_FRAMES + PRED_TEST_FRAMES)
+                ret = model.sample_one_video(cond_scale=1.0, real_vid=real_vids.cuda())
+                # num_frames = real_vids.size(2)
+                msk_size = ref_imgs.shape[-1]
+                new_im_arr_list = []
+                save_src_img = sample_img(ref_imgs)
+                for nf in range(CONDITION_FRAMES + PRED_TRAIN_FRAMES):
+                    save_tar_img = sample_img(real_vids[:, :, nf , :, :])
+                    save_real_out_img = sample_img(ret['real_out_vid'][:, :, nf, :, :])
+                    save_real_warp_img = sample_img(ret['real_warped_vid'][:, :, nf, :, :])
+                    save_sample_out_img = sample_img(ret['sample_out_vid'][:, :, nf, :, :])
+                    save_sample_warp_img = sample_img(ret['sample_warped_vid'][:, :, nf, :, :])
+                    save_real_grid = grid2fig(
+                        ret['real_vid_grid'][0, :, nf].permute((1, 2, 0)).data.cpu().numpy(),
+                        grid_size=32, img_size=msk_size)
+                    save_fake_grid = grid2fig(
+                        ret['sample_vid_grid'][0, :, nf].permute((1, 2, 0)).data.cpu().numpy(),
+                        grid_size=32, img_size=msk_size)
+                    save_real_conf = conf2fig(ret['real_vid_conf'][0, :, nf], img_size=INPUT_SIZE)
+                    save_fake_conf = conf2fig(ret['sample_vid_conf'][0, :, nf], img_size=INPUT_SIZE)
+                    new_im = Image.new('RGB', (msk_size * 5, msk_size * 2))
+                    new_im.paste(Image.fromarray(save_src_img, 'RGB'), (0, 0))
+                    new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, msk_size))
+                    new_im.paste(Image.fromarray(save_real_out_img, 'RGB'), (msk_size, 0))
+                    new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size, msk_size))
+                    new_im.paste(Image.fromarray(save_sample_out_img, 'RGB'), (msk_size * 2, 0))
+                    new_im.paste(Image.fromarray(save_sample_warp_img, 'RGB'), (msk_size * 2, msk_size))
+                    new_im.paste(Image.fromarray(save_real_grid, 'RGB'), (msk_size * 3, 0))
+                    new_im.paste(Image.fromarray(save_fake_grid, 'RGB'), (msk_size * 3, msk_size))
+                    new_im.paste(Image.fromarray(save_real_conf, 'L'), (msk_size * 4, 0))
+                    new_im.paste(Image.fromarray(save_fake_conf, 'L'), (msk_size * 4, msk_size))
+                    new_im_arr = np.array(new_im)
+                    new_im_arr_list.append(new_im_arr)
+                new_vid_name = 'B' + format(args.batch_size, "04d") + '_S' + format(actual_step, "06d") \
+                                + '_' + format(real_names[0], "06d") + ".gif"
+                new_vid_file = os.path.join(SAMPLE_DIR, new_vid_name)
+                imageio.mimsave(new_vid_file, new_im_arr_list)
+            # if actual_step % args.sample_vid_freq == 0:
+
+            # save model at i-th step
+            if actual_step % args.save_pred_every == 0 and cnt != 0:
+                # run validation
+                fvd = valid(valid_dataloader=valid_dataloader, model=model, epoch=epoch_cnt)
+                if fvd<fvd_best:
+                    fvd_best = fvd
+                    epoch_best = epoch_cnt
+                print('=====================================')
+                print('history best fvd:', fvd_best)
+                print('history best epoch:', epoch_best)
+                print('=====================================')
+                # save model
+                print('taking snapshot ...')
+                torch.save({'example': actual_step * args.batch_size,
+                            'diffusion': model.diffusion.state_dict(),
+                            'optimizer_diff': optimizer_diff.state_dict()},
+                           osp.join(args.snapshot_dir,
+                                    'flowdiff_' + format(args.batch_size, "04d") + '_S' + format(actual_step, "06d") + '.pth'))
+
+            # update saved model
+            if actual_step % args.update_pred_every == 0 and cnt != 0:
+                valid(valid_dataloader=valid_dataloader, model=model, epoch=epoch_cnt)
+                print('updating saved snapshot ...')
+                torch.save({'example': actual_step * args.batch_size,
+                            'diffusion': model.diffusion.state_dict(),
+                            'optimizer_diff': optimizer_diff.state_dict()},
+                           osp.join(args.snapshot_dir, 'flowdiff.pth'))
+
+            if actual_step >= args.final_step:
                 break
 
             cnt += 1
 
         scheduler.step()
         epoch_cnt += 1
-        
-        # print lr
-        print("epoch %d, lr= %.7f" % (epoch_cnt, optimizer.param_groups[0]["lr"]))
+        print("epoch %d, lr= %.7f" % (epoch_cnt, optimizer_diff.param_groups[0]["lr"]))
 
-    print('save the final model...')
-    torch.save({'example': actual_step * train_params["batch_size"],
-                'epoch': epoch_cnt,
-                'generator': generator.state_dict(),
-                'bg_predictor': bg_predictor.state_dict(),
-                'region_predictor': region_predictor.state_dict(),
-                'optimizer': optimizer.state_dict()},
-               os.path.join(config["snapshots"],
-                            'RegionMM_' + format(train_params["batch_size"], "04d") +
-                            '_S' + format(actual_step, "06d") + '.pth'))
-
-
+    print('save the final model ...')
+    torch.save({'example': actual_step * args.batch_size,
+                'diffusion': model.diffusion.state_dict(),
+                'optimizer_diff': optimizer_diff.state_dict()},
+               osp.join(args.snapshot_dir,
+                        'flowdiff_' + format(args.batch_size, "04d") + '_S' + format(actual_step, "06d") + '.pth'))
+    end = timeit.default_timer()
+    print(end - start, 'seconds')

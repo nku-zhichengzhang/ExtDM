@@ -5,117 +5,88 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
+
+import wandb
+
 from model.LFAE.model import ReconstructionModel
 from model.LFAE.util import Visualizer
 from model.LFAE.sync_batchnorm import DataParallelWithCallback
+
+from data.two_frames_dataset import TwoFramesDataset
+from data.video_dataset import VideoDataset
 from data.two_frames_dataset import DatasetRepeater
+
 import timeit
 import imageio
 import math
 import random
 
-import wandb
-import datetime
-
 import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
-from PIL import Image
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from utils.meter import AverageMeter
 from model.LFAE.flow_autoenc import FlowAE
 
-def fig2data(fig):
-    """
-    @brief Convert a Matplotlib figure to a 4D numpy array with RGBA channels and return it
-    @param fig a matplotlib figure
-    @return a numpy 3D array of RGBA values
-    """
-    # draw the renderer
-    fig.canvas.draw()
+def train(
+        config,
+        dataset_params,
+        train_params, 
+        generator,
+        region_predictor, 
+        bg_predictor, 
+        log_dir, 
+        checkpoint, 
+        device_ids
+    ):
 
-    # Get the RGBA buffer from the figure
-    w, h = fig.canvas.get_width_height()
-    buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
-    buf.shape = (w, h, 4)
-
-    # canvas.tostring_argb give pixmap in ARGB mode. Roll the ALPHA channel to have it in RGBA mode
-    buf = np.roll(buf, 3, axis=2)
-    return buf
-
-def plot_grid(x, y, ax=None, **kwargs):
-    ax = ax or plt.gca()
-    segs1 = np.stack((x, y), axis=2)
-    segs2 = segs1.transpose(1, 0, 2)
-    ax.add_collection(LineCollection(segs1, **kwargs))
-    ax.add_collection(LineCollection(segs2, **kwargs))
-    ax.autoscale()
-
-def grid2fig(warped_grid, grid_size=32, img_size=256):
-    dpi = 1000
-    # plt.ioff()
-    h_range = torch.linspace(-1, 1, grid_size)
-    w_range = torch.linspace(-1, 1, grid_size)
-    grid = torch.stack(torch.meshgrid([h_range, w_range]), -1).flip(2)
-    flow_uv = grid.cpu().data.numpy()
-    fig, ax = plt.subplots()
-    grid_x, grid_y = warped_grid[..., 0], warped_grid[..., 1]
-    plot_grid(flow_uv[..., 0], flow_uv[..., 1], ax=ax, color="lightgrey")
-    plot_grid(grid_x, grid_y, ax=ax, color="C0")
-    plt.axis("off")
-    plt.tight_layout(pad=0)
-    fig.set_size_inches(img_size/100, img_size/100)
-    fig.set_dpi(100)
-    out = fig2data(fig)[:, :, :3]
-    plt.close()
-    plt.cla()
-    plt.clf()
-    return out
-
-def sample_img(rec_img_batch, index):
-    rec_img = rec_img_batch[index].permute(1, 2, 0).data.cpu().numpy().copy()
-    rec_img += np.array((0.0, 0.0, 0.0))/255.0
-    rec_img[rec_img < 0] = 0
-    rec_img[rec_img > 1] = 1
-    rec_img *= 255
-    return np.array(rec_img, np.uint8)
-
-def train(config, generator, region_predictor, bg_predictor, checkpoint, log_dir, train_dataset, valid_dataset, device_ids):
     print(config)
 
-    train_params = config['train_params']
+    train_dataset = TwoFramesDataset(
+        root_dir=dataset_params['root_dir'], 
+        type=dataset_params['train_params']['type'], 
+        total_videos=-1, 
+        frame_shape=dataset_params['frame_shape'], 
+        max_frame_distance=dataset_params['max_frame_distance'], 
+        min_frame_distance=dataset_params['min_frame_distance'],
+        augmentation_params=dataset_params['augmentation_params']
+    )
 
-    optimizer = torch.optim.Adam(list(generator.parameters()) +
-                                 list(region_predictor.parameters()) +
-                                 list(bg_predictor.parameters()), lr=train_params['lr'], betas=(0.5, 0.999))
+    valid_dataset = VideoDataset(
+        data_dir=dataset_params['root_dir'], 
+        type=dataset_params['valid_params']['type'], 
+        total_videos=dataset_params['valid_params']['total_videos'],
+        num_frames=dataset_params['valid_params']['cond_frames'] + dataset_params['valid_params']['pred_frames'], 
+        image_size=dataset_params['frame_shape'], 
+    )
 
-    now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    # 计算一个 epoch 有多少 step 
+    steps_per_epoch = math.ceil(train_params['num_repeats'] * len(train_dataset) / float(train_params['batch_size']))
+    # 多少 step 保存一次模型
+    save_ckpt_freq = train_params['save_ckpt_freq']
+    # 总共只保存 10 次模型，计算每次需要多少 step
+    # save_ckpt_freq = steps_per_epoch * (train_params['max_epochs'] // 10)
+    print("save ckpt freq:", save_ckpt_freq)
 
-    wandb.login()
-    wandb.init(
-        project="EDM",
-        config={
-            "learning_rate": train_params['lr'],
-            "epochs": train_params['max_epochs'],
-        },
-        name=f"{config['experiment_name']}_{now}",
-        dir=f"./wandb/{config['experiment_name']}_{now}"
+    optimizer = torch.optim.Adam( 
+        list(generator.parameters()) +
+        list(region_predictor.parameters()) +
+        list(bg_predictor.parameters()), 
+        lr=train_params['lr'], 
+        betas=(0.5, 0.999)
     )
 
     start_epoch = 0
     start_step = 0
+
     if checkpoint is not None:
         ckpt = torch.load(checkpoint)
         if config["set_start"]:
-            start_step = int(math.ceil(ckpt['example'] / config['train_params']['batch_size']))
+            start_step = int(math.ceil(ckpt['example'] / train_params['batch_size']))
             start_epoch = ckpt['epoch']
 
             print("ckpt['example']", ckpt['example'])
             print("start_step", start_step)
-
-            if config['dataset_params']['frame_shape'] == 64:
-                ckpt['generator']['pixelwise_flow_predictor.down.weight'] = generator.pixelwise_flow_predictor.down.weight
-                ckpt['region_predictor']['pixelwise_flow_predictor.down.weight'] = region_predictor.pixelwise_flow_predictor.down.weight
         
         if config['dataset_params']['frame_shape'] == 64:
             ckpt['generator']['pixelwise_flow_predictor.down.weight'] = generator.pixelwise_flow_predictor.down.weight
@@ -137,7 +108,7 @@ def train(config, generator, region_predictor, bg_predictor, checkpoint, log_dir
 
     train_dataloader = DataLoader(train_dataset, batch_size=train_params['batch_size'], shuffle=True,
                             num_workers=train_params['dataloader_workers'], drop_last=False)
-    valid_dataloader = DataLoader(valid_dataset, batch_size=train_params['batch_size'], shuffle=True,
+    valid_dataloader = DataLoader(valid_dataset, batch_size=train_params['valid_batch_size'], shuffle=False,
                             num_workers=train_params['dataloader_workers'], drop_last=False)
 
     model = ReconstructionModel(region_predictor, bg_predictor, generator, train_params)
@@ -162,7 +133,7 @@ def train(config, generator, region_predictor, bg_predictor, checkpoint, log_dir
     cnt = 0
     epoch_cnt = start_epoch
     actual_step = start_step
-    final_step = config["num_step_per_epoch"] * train_params["max_epochs"]
+    final_step = steps_per_epoch * train_params["max_epochs"]
 
     while actual_step < final_step:
         iter_end = timeit.default_timer()
@@ -208,7 +179,7 @@ def train(config, generator, region_predictor, bg_predictor, checkpoint, log_dir
                     "loss_perc": losses_perc.val,
                     "loss_shift": losses_equiv_shift.val,
                     "loss_affine": losses_equiv_affine.val,
-                    "batch_time": batch_time.val
+                    "batch_time": batch_time.avg
                 })
 
             if actual_step % train_params['save_img_freq'] == 0:
@@ -217,10 +188,9 @@ def train(config, generator, region_predictor, bg_predictor, checkpoint, log_dir
                             + '_' + str(x["frame"][0][0].item()) + '_to_' + str(x["frame"][0][1].item()) +'.png'
                 save_file = os.path.join(config["imgshots"], save_name)
                 imageio.imsave(save_file, save_image)
-
                 wandb.log({"save_img": wandb.Image(save_image)})
 
-            if actual_step % config["save_ckpt_freq"] == 0 and cnt != 0:
+            if actual_step % save_ckpt_freq == 0 and cnt != 0:
                 print('taking snapshot...')
                 checkpoint_save_path = os.path.join(
                         config["snapshots"], 
@@ -278,7 +248,7 @@ def setup_seed(seed):
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
 
-def valid(config, valid_dataloader, checkpoint_save_path, log_dir, epoch_num):
+def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
 
     cudnn.enabled = True
     cudnn.benchmark = True
@@ -294,12 +264,14 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, epoch_num):
 
     model.eval()
 
+    dataset_params = config['dataset_params']
+    train_params = config['flow_params']['train_params']
+
     from math import ceil
 
-    NUM_ITER = ceil(config['valid_dataset_params']['total_videos'] / config['train_params']['batch_size'])
-
-    cond_frames = config['valid_dataset_params']['cond_frames']
-    pred_frames = config['valid_dataset_params']['pred_frames']
+    NUM_ITER = ceil(dataset_params['valid_params']['total_videos'] / train_params['valid_batch_size'])
+    cond_frames = dataset_params['valid_params']['cond_frames']
+    pred_frames = dataset_params['valid_params']['pred_frames']
 
     origin_videos = []
     result_videos = []
@@ -323,17 +295,14 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, epoch_num):
         # use first frame of each video as reference frame (vids: B C T H W)
         ref_imgs = cond_vids[:, :, -1, :, :].clone().detach()
 
-        bs = real_vids.size(0)
-
-        nf = real_vids.size(2) 
-        assert nf == pred_frames
+        assert real_vids.size(2) == pred_frames
 
         out_img_list = []
         warped_img_list = []
         warped_grid_list = []
         conf_map_list = []
 
-        for frame_idx in range(nf):
+        for frame_idx in range(pred_frames):
             dri_imgs = real_vids[:, :, frame_idx, :, :]
             with torch.no_grad():
                 model.set_train_input(ref_img=ref_imgs, dri_img=dri_imgs)
@@ -348,38 +317,19 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, epoch_num):
         warped_grid_list_tensor = torch.stack(warped_grid_list, dim=0)
         conf_map_list_tensor = torch.stack(conf_map_list, dim=0)
 
-        for batch_idx in range(bs):
-            #  LFAE 
-            msk_size = ref_imgs.shape[-1] # h,w
-            new_im_list = []
-            for frame_idx in range(nf):
-                # cond+real
-                save_tar_img = sample_img(real_vids[:, :, frame_idx], batch_idx)
-                # out_img_list_tensor
-                save_out_img = sample_img(out_img_list_tensor[frame_idx], batch_idx)
-                # warped_img_list_tensor
-                save_warped_img = sample_img(warped_img_list_tensor[frame_idx], batch_idx)
-                # warped_grid_list_tensor
-                save_warped_grid = grid2fig(warped_grid_list_tensor[frame_idx, batch_idx].data.cpu().numpy(),grid_size=32, img_size=msk_size)
-                # conf_map_list_tensor
-                save_conf_map = conf_map_list_tensor[frame_idx, batch_idx].unsqueeze(dim=0)
-                save_conf_map = save_conf_map.data.cpu()
-                save_conf_map = F.interpolate(save_conf_map, size=real_vids.shape[3:5]).numpy()
-                save_conf_map = np.transpose(save_conf_map, [0, 2, 3, 1])
-                save_conf_map = np.array(save_conf_map[0, :, :, 0]*255, dtype=np.uint8)
-                # save img_list
-                new_im = Image.new('RGB', (msk_size * 5, msk_size))
-                new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, 0))
-                new_im.paste(Image.fromarray(save_out_img, 'RGB'), (msk_size, 0))
-                new_im.paste(Image.fromarray(save_warped_img, 'RGB'), (msk_size * 2, 0))
-                new_im.paste(Image.fromarray(save_warped_grid), (msk_size * 3, 0))
-                new_im.paste(Image.fromarray(save_conf_map, "L"), (msk_size * 4, 0))
-                new_im_list.append(new_im)
-            video_name = "%s.gif" % (str(int(video_names[batch_idx])))
-            os.makedirs(os.path.join(log_dir, "flowae-res"),exist_ok=True)
-            imageio.mimsave(os.path.join(log_dir, "flowae-res", video_name), new_im_list)
-
-            break
+        from utils.visualize import LFAE_visualize
+        LFAE_visualize(
+            ground=real_vids,
+            prediction=out_img_list_tensor,
+            deformed=warped_img_list_tensor,
+            optical_flow=warped_grid_list_tensor,
+            occlusion_map=conf_map_list_tensor,
+            video_names=video_names,
+            save_path=f"{log_dir}/flowae_result",
+            save_num=8,
+            epoch_or_step_num=actual_step,
+            image_size=ref_imgs.shape[-1]
+        )
 
         # out_img_list_tensor      [40, 8, 3, 64, 64] 
         # warped_img_list_tensor   [40, 8, 3, 64, 64]
@@ -404,14 +354,15 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, epoch_num):
 
     from utils.visualize import visualize
     visualize(
-        save_path=f"{log_dir}/video",
+        save_path=f"{log_dir}/video_result",
         origin=origin_videos,
         result=result_videos,
         save_pic_num=8,
         grid_nrow=4,
-        save_pic_row=False,
+        save_gif_grid=True,
+        save_pic_row=True,
         save_gif=False,
-        epoch_num=epoch_num, 
+        epoch_or_step_num=actual_step, 
         cond_frame_num=cond_frames,   
     )
 
@@ -436,8 +387,14 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, epoch_num):
     # print("[lpips  ]", lpips)
 
     return {
+        'actual_step': actual_step,
         'metrics/fvd': fvd,
         'metrics/ssim': ssim,
         'metrics/psnr': psnr,
         'metrics/lpips': lpips
     }
+
+# flowae_result     warp的一个视频结果
+# imgshots          warp的一帧结果
+# snapshots         保存模型
+# video_result      warp的一组视频结果

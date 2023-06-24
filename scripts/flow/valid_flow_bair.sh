@@ -1,17 +1,16 @@
-# sh ./scripts/flow/valid_flow_carla.sh
+# sh ./scripts/flow/valid_flow_bair.sh
 
 python ./scripts/flow/valid.py \
-    --postfix test 
-    --save-video True
-    --cond-frames 2
-    --pred-frames 28
-    --num-videos 256
-    --batch-size 64
-    --input-size 64
-    --random-seed 1234
-    --restore-from "/mnt/sda/hjy/training_logs/cityscapes128/snapshots/RegionMM.pth"
-    --config-path "./config/bair64.yaml"
-    --root-dir "./logs_validation/flow/flowautoenc_video_carla"
-    --data-dir "/mnt/sda/hjy/fdm/CARLA_Town_01_h5"
-    --data-type "test"
+    --cond_frames 2 \
+    --pred_frames 28 \
+    --num_videos 256 \
+    --batch_size 256 \
+    --input_size 64 \
+    --config_path "./config/bair64.yaml" \
+    --restore_from "./logs_training/flow/bair64_test/snapshots/RegionMM.pth" \
+    --log_dir "./logs_validation/flow/bair64" \
+    --data_dir "/mnt/sda/hjy/bair/mcvd-pytorch/datasets/BAIR/BAIR_h5" \
+    --data_type "test" \
+    --save-video True \
+    --random-seed 1234 \
     --gpu "0"

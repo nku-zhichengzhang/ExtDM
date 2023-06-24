@@ -21,71 +21,90 @@ dataset_params:
       contrast: 0.1
       saturation: 0.1
       hue: 0.1
+  min_frame_distance: 0
+  max_frame_distance: 100
+  train_params:
+    type: train
+    cond_frames: 2
+    pred_frames: 5
+  valid_params:
+    total_videos: 100
+    type: test
+    cond_frames: 2
+    pred_frames: 28
 
-valid_dataset_params:
-  total_videos: 100
-  type: test
-  cond_frames: 2
-  pred_frames: 28
-
-model_params:
-  num_regions: 20
-  num_channels: 3
-  estimate_affine: True
-  revert_axis_swap: True
-  bg_predictor_params:
-    block_expansion: 32
-    max_features: 1024
-    num_blocks: 5
-    bg_type: 'affine'
-  region_predictor_params:
-    temperature: 0.1
-    block_expansion: 32
-    max_features: 1024
-    scale_factor: 0.25
-    num_blocks: 5
-    pca_based: True
-    pad: 0
-    fast_svd: False
-  generator_params:
-    block_expansion: 64
-    max_features: 512
-    num_down_blocks: 2
-    num_bottleneck_blocks: 6
-    skips: True
-    pixelwise_flow_predictor_params:
-      block_expansion: 64
+flow_params:
+  model_params:
+    num_regions: 20
+    num_channels: 3
+    estimate_affine: True
+    revert_axis_swap: True
+    bg_predictor_params:
+      block_expansion: 32
       max_features: 1024
       num_blocks: 5
+      bg_type: 'affine'
+    region_predictor_params:
+      temperature: 0.1
+      block_expansion: 32
+      max_features: 1024
       scale_factor: 0.25
-      use_deformed_source: True
-      use_covar_heatmap: True
-      estimate_occlusion_map: True
-  avd_network_params:
-    id_bottle_size: 64
-    pose_bottle_size: 64
+      num_blocks: 5
+      pca_based: True
+      pad: 0
+      fast_svd: False
+    generator_params:
+      block_expansion: 64
+      max_features: 512
+      num_down_blocks: 2
+      num_bottleneck_blocks: 6
+      skips: True
+      pixelwise_flow_predictor_params:
+        block_expansion: 64
+        max_features: 1024
+        num_blocks: 5
+        scale_factor: 0.25
+        use_deformed_source: True
+        use_covar_heatmap: True
+        estimate_occlusion_map: True
 
-train_params:
-  max_epochs: 246
-  num_repeats: 200
-  batch_size: 100
-  dataloader_workers: 8
-  epoch_milestones: [60, 90]
-  lr: 2.0e-4
-  print_freq: 100
-  save_img_freq: 500
-  update_ckpt_freq: 500
-  scales: [1, 0.5, 0.25, 0.125]
-  transform_params:
-    sigma_affine: 0.05
-    sigma_tps: 0.005
-    points_tps: 5
-  loss_weights:
-    perceptual: [10, 10, 10, 10, 10]
-    equivariance_shift: 10
-    equivariance_affine: 10
+  train_params:
+    max_epochs: 246
+    num_repeats: 200
+    epoch_milestones: [60, 90]
+    lr: 2.0e-4
+    batch_size: 100
+    valid_batch_size: 256
+    dataloader_workers: 8
+    print_freq: 1 # 100
+    save_img_freq: 5 # 500
+    update_ckpt_freq: 10 # 500
+    save_ckpt_freq: 20 # 2000
+    scales: [1, 0.5, 0.25, 0.125]
+    transform_params:
+      sigma_affine: 0.05
+      sigma_tps: 0.005
+      points_tps: 5
+    loss_weights:
+      perceptual: [10, 10, 10, 10, 10]
+      equivariance_shift: 10
+      equivariance_affine: 10
+  
+# FIXME: 修改成 LDM 更标准的 diffusion 格式
 
-save_ckpt_freq: 2000
+diffusion_params:
+  model_params:
+    null_cond_prob: 0.0
+    use_residual_flow: True
+    only_use_flow: True
+    sampling_timesteps: 10
+    loss_type: 'l2'
+  train_params:
+    max_epochs: 100
+    batch_size: 100
+    epoch_milestones: [3200, 4000]
+    lr: 2.0e-4
+    valid_batch_size: 256
 
 visualizer_params:
   kp_size: 3

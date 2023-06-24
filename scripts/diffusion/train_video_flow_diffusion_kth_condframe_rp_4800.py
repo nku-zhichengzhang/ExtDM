@@ -34,7 +34,7 @@ BATCH_SIZE = 8
 VALID_BATCH_SIZE = 8
 MAX_EPOCH = 4800
 epoch_milestones = [3200, 4000]
-root_dir = './logs_training/diffusion/videoflowdiff_kth_rf_temp'
+root_dir = './logs_training/diffusion/kth0621'
 data_dir = "/mnt/sda/hjy/kth/processed"
 GPU = "1"
 postfix = "-joint-steplr-random-onlyflow-train-regionmm-temp-rf"  # sl: step-lr, rmm:regionmm
@@ -49,7 +49,8 @@ split_train_test = "train" in postfix or "-tr" in postfix
 use_residual_flow = "-rf" in postfix
 config_path = "./config/kth64.yaml"
 # put your pretrained LFAE here
-AE_RESTORE_FROM = "./logs_training/flow/kth64/snapshots/RegionMM_0100_S047900.pth"
+AE_RESTORE_FROM = "./logs_training/diffusion/kth64test/snapshotstest/RegionMM.pth"
+# AE_RESTORE_FROM = "./logs_training/flow/kth64/snapshots/RegionMM_0100_S047900.pth"
 INPUT_SIZE = 64
 CONDITION_FRAMES = 10 # KTH
 PRED_TEST_FRAMES = 10 # KTH
@@ -187,8 +188,10 @@ if __name__ == '__main__':
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE,
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--valid-batch-size", type=int, default=VALID_BATCH_SIZE, help="Number of images sent to the network in one step.")
-    parser.add_argument("--input-size", type=str, default=INPUT_SIZE,
-                        help="Comma-separated string with height and width of images.")
+    parser.add_argument("--input-size", 
+                        type=int, 
+                        default=128,
+                        help="height and width of videos")
     parser.add_argument("--n-frames", default=N_FRAMES)
     parser.add_argument("--learning-rate", type=float, default=LEARNING_RATE,
                         help="Base learning rate for training with polynomial decay.")

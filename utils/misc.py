@@ -12,7 +12,6 @@ import numpy as np
 import flow_vis
 import cv2
 
-
 def fig2data(fig):
     """
     @brief Convert a Matplotlib figure to a 4D numpy array with RGBA channels and return it
@@ -78,20 +77,6 @@ def conf2fig(conf, img_size=128):
     conf = np.transpose(conf, [0, 2, 3, 1])
     conf = np.array(conf[0, :, :, 0]*255, dtype=np.uint8)
     return conf
-
-
-class Logger(object):
-    def __init__(self, filename='default.log', stream=sys.stdout):
-        self.terminal = stream
-        self.log = open(filename, 'w')
-
-    def write(self, message):
-        self.terminal.write(message)
-        self.log.write(message)
-
-    def flush(self):
-        pass
-
 
 def resize(im, desired_size, interpolation):
     old_size = im.shape[:2]
@@ -171,7 +156,6 @@ def get_grid(batchsize, size, minval=-1.0, maxval=1.0):
 
     t_grid.requires_grad = False
     return t_grid.to('cuda')
-
 
 def get_checkpoint(checkpoint_path, url=''):
     r"""Get the checkpoint path. If it does not exist yet, download it from

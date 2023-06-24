@@ -1,17 +1,18 @@
-# sh ./scripts/flow/valid_flow_carla.sh
+# sh ./scripts/flow/valid_flow_smmnist.sh
 
 python ./scripts/flow/valid.py \
-    --postfix test 
-    --save-video True
-    --cond-frames 10
-    --pred-frames 10
-    --num-videos 256
-    --batch-size 64
-    --input-size 64
-    --random-seed 1234
-    --restore-from "/mnt/sda/hjy/training_logs/cityscapes128/snapshots/RegionMM.pth"
-    --config-path "./config/smmnist64.yaml"
-    --root-dir "./logs_validation/flow/flowautoenc_video_carla"
-    --data-dir "/mnt/sda/hjy/fdm/CARLA_Town_01_h5"
-    --data-type "test"
+    --cond_frames 10 \
+    --pred_frames 10 \
+    --num_videos 256 \
+    --batch_size 256 \
+    --input_size 64 \
+    --config_path "./config/smmnist64.yaml" \
+    --restore_from "./logs_training/flow/smmnist64_test/snapshots/RegionMM.pth" \
+    --log_dir "./logs_validation/flow/smmnist64" \
+    --data_dir "/mnt/sda/hjy/SMMNIST/SMMNIST_h5" \
+    --data_type "test" \
+    --save-video True \
+    --random-seed 1234 \
     --gpu "0"
+
+# --restore-from "/mnt/sda/hjy/training_logs/cityscapes128/snapshots/RegionMM.pth"

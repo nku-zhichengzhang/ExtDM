@@ -18,17 +18,19 @@ class FlowAE(nn.Module):
         if '.yaml' in config:
             with open(config) as f:
                 config = yaml.safe_load(f)
-        print(config)
-        self.generator = Generator(num_regions=config['model_params']['num_regions'],
-                                   num_channels=config['model_params']['num_channels'],
-                                   revert_axis_swap=config['model_params']['revert_axis_swap'],
-                                   **config['model_params']['generator_params']).cuda()
-        self.region_predictor = RegionPredictor(num_regions=config['model_params']['num_regions'],
-                                                num_channels=config['model_params']['num_channels'],
-                                                estimate_affine=config['model_params']['estimate_affine'],
-                                                **config['model_params']['region_predictor_params']).cuda()
-        self.bg_predictor = BGMotionPredictor(num_channels=config['model_params']['num_channels'],
-                                              **config['model_params']['bg_predictor_params'])
+
+        model_params = config['flow_params']['model_params']
+
+        self.generator = Generator(num_regions=model_params['num_regions'],
+                                   num_channels=model_params['num_channels'],
+                                   revert_axis_swap=model_params['revert_axis_swap'],
+                                   **model_params['generator_params']).cuda()
+        self.region_predictor = RegionPredictor(num_regions=model_params['num_regions'],
+                                                num_channels=model_params['num_channels'],
+                                                estimate_affine=model_params['estimate_affine'],
+                                                **model_params['region_predictor_params']).cuda()
+        self.bg_predictor = BGMotionPredictor(num_channels=model_params['num_channels'],
+                                              **model_params['bg_predictor_params'])
 
         self.is_train = is_train
 

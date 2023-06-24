@@ -1,17 +1,16 @@
-# sh ./scripts/flow/valid_flow_carla.sh
+# sh ./scripts/flow/valid_flow_cityscapes.sh
 
 python ./scripts/flow/valid.py \
-    --postfix test 
-    --save-video True
-    --cond-frames 2
-    --pred-frames 28
-    --num-videos 256
-    --batch-size 64
-    --input-size 128
-    --random-seed 1234
-    --restore-from "/mnt/sda/hjy/training_logs/cityscapes128/snapshots/RegionMM.pth"
-    --config-path "./config/cityscapes128.yaml"
-    --root-dir "./logs_validation/flow/flowautoenc_video_carla"
-    --data-dir "/mnt/sda/hjy/fdm/CARLA_Town_01_h5"
-    --data-type "test"
+    --cond_frames 2 \
+    --pred_frames 28 \
+    --num_videos 256 \
+    --batch_size 256 \
+    --input_size 128 \
+    --config_path "./config/cityscapes128.yaml" \
+    --restore_from "./logs_training/flow/cityscapes128_test/snapshots/RegionMM.pth" \
+    --log_dir "./logs_validation/flow/cityscapes128" \
+    --data_dir "/mnt/sda/hjy/cityscapes/cityscapes_processed/" \
+    --data_type "val" \
+    --save-video True \
+    --random-seed 1234 \
     --gpu "0"

@@ -78,7 +78,7 @@ def read_video(name, frame_shape):
 
     return video_array
 
-class H5FramesDataset(Dataset):
+class TwoFramesDataset(Dataset):
     """
     Dataset of videos, each video can be represented as:
       - an image of concatenated frames
