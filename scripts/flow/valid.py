@@ -15,13 +15,7 @@ import json_tricks as json
 from data.video_dataset import VideoDataset
 from model.LFAE.flow_autoenc import FlowAE
 from utils.meter import AverageMeter
-
-def setup_seed(seed):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.backends.cudnn.deterministic = True
+from utils.seed import setup_seed
 
 if __name__ == "__main__":
     start = timeit.default_timer()
