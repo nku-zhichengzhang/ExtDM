@@ -94,7 +94,8 @@ if __name__ == "__main__":
             "epochs": train_params['max_epochs'],
         },
         name=f"{config['experiment_name']}{postfix}",
-        dir=log_dir
+        dir=log_dir,
+        tags=["diffusion"]
     )
 
     print("postfix:", postfix)

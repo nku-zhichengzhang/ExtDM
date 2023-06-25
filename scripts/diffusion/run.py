@@ -9,14 +9,14 @@ import os
 import yaml
 from shutil import copy
 
-from utils.meter import AverageMeter
-from utils.misc import grid2fig, conf2fig
+from train import train
+
 from utils.seed import setup_seed
 from utils.logger import Logger
-from data.video_dataset import VideoDataset
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+import wandb
 import os.path as osp
 import timeit
 import math
@@ -24,8 +24,6 @@ from PIL import Image
 import sys
 import random
 from einops import rearrange
-from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
-from torch.optim.lr_scheduler import MultiStepLR
 
 # # FIXME: 更新为parser参数形式
 # start = timeit.default_timer()
@@ -36,7 +34,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 # root_dir = './logs_training/diffusion/kth0621'
 # data_dir = "/mnt/sda/hjy/kth/processed"
 # GPU = "1"
-postfix = "-joint-steplr-random-onlyflow-train-regionmm-temp-rf"  # sl: step-lr, rmm:regionmm
+# postfix = "-joint-steplr-random-onlyflow-train-regionmm-temp-rf"  # sl: step-lr, rmm:regionmm
 # frame_sampling = "random" if "random" in postfix else "uniform"  # frame sampling strategy
 # only_use_flow = "onlyflow" in postfix or "-of" in postfix  # whether only use flow loss
 # split_train_test = "train" in postfix or "-tr" in postfix
@@ -105,15 +103,14 @@ if __name__ == '__main__':
     parser.add_argument("--start-step", default=0, type=int)
     parser.add_argument("--log_dir",default='./logs_training/diffusion', help="path to log into")
     parser.add_argument("--config",default="./config/kth64.yaml",help="path to config")
-    parser.add_argument("--num-workers", default=8)
     parser.add_argument("--device_ids", default="0,1", type=lambda x: list(map(int, x.split(','))),
                         help="Names of the devices comma separated.")
     parser.add_argument("--random-seed", type=int, default=1234,
                         help="Random seed to have reproducible results.")
-    parser.add_argument("--restore-from", default="")
-    parser.add_argument("--checkpoint", # use the pretrained model provided by Snap
+    parser.add_argument("--checkpoint", default="")
+    parser.add_argument("--flowae_checkpoint", # use the flowae_checkpoint pretrained model provided by Snap
                         default="./logs_training/flow/kth64_test/snapshots/RegionMM.pth",
-                        help="path to checkpoint")
+                        help="path to flowae_checkpoint checkpoint")
     parser.add_argument("--verbose", default=False, help="Print model architecture")
 
     # parser.add_argument("--final-step", type=int, default=int(NUM_STEPS_PER_EPOCH * MAX_EPOCH),
@@ -167,6 +164,12 @@ if __name__ == '__main__':
     # the directory to save images of training results
     config["imgshots"] = os.path.join(log_dir, 'imgshots')
     os.makedirs(config["imgshots"], exist_ok=True)
+    # vidshots
+    config["vidshots"] = os.path.join(log_dir, 'vidshots')
+    os.makedirs(config["vidshots"], exist_ok=True)
+    # samples
+    config["samples"] = os.path.join(log_dir, 'samples')
+    os.makedirs(config["samples"], exist_ok=True)
 
     config["set_start"] = args.set_start
 
@@ -187,18 +190,16 @@ if __name__ == '__main__':
             "epochs": train_params['max_epochs'],
         },
         name=f"{config['experiment_name']}{postfix}",
-        dir=log_dir
+        dir=log_dir,
+        tags=["flow"]
     )
 
     print("postfix:", postfix)
     print("checkpoint:", args.checkpoint)
+    print("flowae checkpoint:", args.flowae_checkpoint)
     print("batch size:", train_params['batch_size'])
 
-    if torch.cuda.is_available():
-        diffusion.to(args.device_ids[0])
-    if args.verbose:
-        print(diffusion)
-    # Not set model to be train mode! Because pretrained flow autoenc need to be eval
+    config['flowae_checkpoint'] = args.flowae_checkpoint
 
     print("Training...")
     train(

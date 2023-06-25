@@ -28,8 +28,9 @@ class FlowDiffusion(nn.Module):
         ):
         super(FlowDiffusion, self).__init__()
         
-        flow_params = config['flow_params']
-        diffusion_params = config['diffusion_params']
+        flow_params = config['flow_params']['model_params']
+        diffusion_params = config['diffusion_params']['model_params']
+        dataset_params = config['dataset_params']
 
         self.use_residual_flow = diffusion_params['use_residual_flow']
         self.only_use_flow = diffusion_params['only_use_flow']
@@ -73,14 +74,14 @@ class FlowDiffusion(nn.Module):
             use_final_activation=False,
             use_deconv=use_deconv,
             padding_mode=padding_mode,
-            cond_num=diffusion_params['condition_frames'],
-            pred_num=diffusion_params['prediction_frames']
+            cond_num=dataset_params['train_params']['cond_frames'],
+            pred_num=dataset_params['train_params']['pred_frames']
         )
 
         self.diffusion = GaussianDiffusion(
             self.unet,
-            image_size=config['dataset_params']['frame_shape']//2,
-            num_frames=diffusion_params['condition_frames'] + diffusion_params['prediction_frames'],
+            image_size=dataset_params['frame_shape']//2,
+            num_frames=dataset_params['train_params']['cond_frames'] + dataset_params['train_params']['pred_frames'],
             sampling_timesteps=diffusion_params['sampling_timesteps'],
             timesteps=timesteps,  # number of steps
             loss_type=diffusion_params['loss_type'],  # L1 or L2

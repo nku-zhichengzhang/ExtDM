@@ -20,6 +20,7 @@ import timeit
 import imageio
 import math
 import random
+from einops import rearrange
 
 import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
@@ -87,6 +88,7 @@ def train(
 
             print("ckpt['example']", ckpt['example'])
             print("start_step", start_step)
+            print("start_epoch", start_epoch)
         
         if config['dataset_params']['frame_shape'] == 64:
             ckpt['generator']['pixelwise_flow_predictor.down.weight'] = generator.pixelwise_flow_predictor.down.weight
@@ -188,7 +190,9 @@ def train(
                             + '_' + str(x["frame"][0][0].item()) + '_to_' + str(x["frame"][0][1].item()) +'.png'
                 save_file = os.path.join(config["imgshots"], save_name)
                 imageio.imsave(save_file, save_image)
-                wandb.log({"save_img": wandb.Image(save_image)})
+                wandb.log({
+                    "save_img": wandb.Image(save_image)
+                })
 
             if actual_step % save_ckpt_freq == 0 and cnt != 0:
                 print('taking snapshot...')
@@ -241,13 +245,6 @@ def train(
                             'RegionMM_' + format(train_params["batch_size"], "04d") +
                             '_S' + format(actual_step, "06d") + '.pth'))
 
-def setup_seed(seed):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.backends.cudnn.deterministic = True
-
 def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
 
     cudnn.enabled = True
@@ -268,7 +265,6 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
     train_params = config['flow_params']['train_params']
 
     from math import ceil
-
     NUM_ITER = ceil(dataset_params['valid_params']['total_videos'] / train_params['valid_batch_size'])
     cond_frames = dataset_params['valid_params']['cond_frames']
     pred_frames = dataset_params['valid_params']['pred_frames']
@@ -336,10 +332,9 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         # warped_grid_list_tensor  [40, 8, 32, 32, 2]
         # conf_map_list_tensor     [40, 8, 1, 32, 32]
 
-        import einops 
         tmp_result = torch.cat([
-            einops.rearrange(cond_vids.cpu(),           'b c t h w -> b t c h w'), 
-            einops.rearrange(out_img_list_tensor.cpu(), 't b c h w -> b t c h w')
+            rearrange(cond_vids.cpu(),           'b c t h w -> b t c h w'), 
+            rearrange(out_img_list_tensor.cpu(), 't b c h w -> b t c h w')
             ], 
             dim=1
         )  

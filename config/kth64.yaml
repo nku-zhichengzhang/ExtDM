@@ -29,7 +29,7 @@ dataset_params:
     total_videos: 256
     type: valid
     cond_frames: 10
-    pred_frames: 40
+    pred_frames: 10
 
 flow_params:
   model_params:
@@ -97,11 +97,19 @@ diffusion_params:
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:
-    max_epochs: 100
-    batch_size: 100
-    epoch_milestones: [3200, 4000]
+    max_epochs: 4800
+    num_repeats: 100
+    epoch_milestones: [2000, 3600]
     lr: 2.0e-4
-    valid_batch_size: 256
+    batch_size: 8
+    valid_batch_size: 64
+    dataloader_workers: 6
+    print_freq: 1 # 10
+    save_img_freq: 10 # 100
+    save_vid_freq: 10 # 1000
+    update_ckpt_freq: 10 # 5000
+    save_ckpt_freq: 20 # 2000
+    sample_vid_freq: 20 # 2000
 
 visualizer_params:
   kp_size: 2

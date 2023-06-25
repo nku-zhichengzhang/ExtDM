@@ -180,7 +180,7 @@ def LFAE_visualize(
             new_im_list.append(new_im)
         imageio.mimsave(os.path.join(epoch_or_step_save_path, f"{video_names[batch_idx]}.gif"), new_im_list)
 
-def sample_img(rec_img_batch, index):
+def sample_img(rec_img_batch, index=0):
     rec_img = rec_img_batch[index].permute(1, 2, 0).data.cpu().numpy().copy()
     rec_img += np.array((0.0, 0.0, 0.0))/255.0
     rec_img[rec_img < 0] = 0
