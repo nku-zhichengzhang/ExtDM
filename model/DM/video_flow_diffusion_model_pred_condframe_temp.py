@@ -11,6 +11,9 @@ from model.LFAE.generator import Generator
 from model.LFAE.bg_motion_predictor import BGMotionPredictor
 from model.LFAE.region_predictor import RegionPredictor
 from model.DM.video_flow_diffusion_pred_condframe_temp import Unet3D, GaussianDiffusion
+# from model.DM.video_flow_diffusion_pred_condframe import Unet3D, GaussianDiffusion
+# from model.DM.video_flow_diffusion_pred import Unet3D, GaussianDiffusion
+# from model.DM.video_flow_diffusion import Unet3D, GaussianDiffusion
 import yaml
 
 
@@ -90,9 +93,10 @@ class FlowDiffusion(nn.Module):
             ddim_sampling_eta=ddim_sampling_eta,
         )
 
-        self.frame_num = None
-        self.cond_frame_num = None
-        self.pred_frame_num = None
+        self.cond_frame_num = dataset_params['train_params']['cond_frames']
+        self.pred_frame_num = dataset_params['train_params']['pred_frames']
+        self.frame_num = self.cond_frame_num + self.pred_frame_num
+
         # self.real_vid = None
         # self.real_out_vid = None
         # self.real_warped_vid = None
@@ -116,6 +120,8 @@ class FlowDiffusion(nn.Module):
             self.diffusion.train()
 
     def forward(self, real_vid):
+        # real_vid [bs, c, length(cond+pred), h, w]
+        
         # compute pseudo ground-truth flow
         b, _, nf, H, W = real_vid.size()
         ret = {}
@@ -144,7 +150,7 @@ class FlowDiffusion(nn.Module):
                 real_warped_img_list.append(generated["deformed"])
         if self.is_train:
             # pred frames
-            pred_frames = real_vid[:,:,self.cond_frame_num:self.cond_frame_num+self.train_frame_num]
+            pred_frames = real_vid[:,:,self.cond_frame_num:self.cond_frame_num+self.pred_frame_num]
         del real_vid
         torch.cuda.empty_cache()
 
@@ -197,16 +203,6 @@ class FlowDiffusion(nn.Module):
                 ret['rec_loss'] = rec_loss
                 ret['rec_warp_loss'] = rec_warp_loss
         return ret
-    
-    def optimize_parameters(self, real_vid, optimizer_diff):
-        ret = self.forward(real_vid)
-        optimizer_diff.zero_grad()
-        if self.only_use_flow:
-            ret['loss'].backward()
-        else:
-            (ret['loss'] + ret['rec_loss'] + ret['rec_warp_loss']).backward()
-        optimizer_diff.step()
-        return ret
 
     def sample_one_video(self, cond_scale, real_vid):
         ret = {}
@@ -216,10 +212,10 @@ class FlowDiffusion(nn.Module):
         real_warped_img_list = []
         
         with torch.no_grad():
-            ref_img = real_vid[:,:,self.cond_frame_num-1,:,:]
+            ref_img = real_vid[:,:,self.cond_frame_num-1]
             # reference image = condition frames [t-1]
             source_region_params = self.region_predictor(ref_img)
-            for idx in range(self.frame_num):
+            for idx in range(self.cond_frame_num):
                 driving_region_params = self.region_predictor(real_vid[:, :, idx, :, :])
                 bg_params = self.bg_predictor(ref_img, real_vid[:, :, idx, :, :])
                 generated = self.generator(ref_img, source_region_params=source_region_params,
@@ -243,7 +239,7 @@ class FlowDiffusion(nn.Module):
             ret['real_vid_conf'] = real_vid_conf
             ret['real_out_vid'] = real_out_vid
             ret['real_warped_vid'] = real_warped_vid
-            x_cond = torch.cat((real_vid_grid[:,:,:self.cond_frame_num], real_vid_conf[:,:,:self.cond_frame_num]*2-1), dim=1)
+            x_cond = torch.cat((real_vid_grid, real_vid_conf*2-1), dim=1)
 
 
         sample_img_fea = F.interpolate(self.generator.compute_fea(ref_img), size=x_cond.shape[-2:], mode='bilinear')
@@ -277,17 +273,6 @@ class FlowDiffusion(nn.Module):
         ret['sample_out_vid'] = sample_out_vid
         ret['sample_warped_vid'] = sample_warped_vid
         return ret
-
-    def set_train_input(self, cond_frame_num, train_frame_num, tot_frame_num):
-        self.frame_num = tot_frame_num
-        self.train_frame_num = train_frame_num
-        self.cond_frame_num = cond_frame_num
-        self.pred_frame_num = tot_frame_num - cond_frame_num
-
-    def set_sample_input(self, cond_frame_num, tot_frame_num):
-        self.frame_num = tot_frame_num
-        self.cond_frame_num = cond_frame_num
-        self.pred_frame_num = tot_frame_num - cond_frame_num
 
     def print_learning_rate(self):
         lr = self.optimizer_diff.param_groups[0]['lr']

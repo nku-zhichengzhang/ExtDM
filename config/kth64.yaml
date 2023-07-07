@@ -19,17 +19,17 @@ dataset_params:
       contrast: 0.1
       saturation: 0.1
       hue: 0.1
-  min_frame_distance: 10
-  max_frame_distance: 30
+  min_frame_distance: 0
+  max_frame_distance: 40
   train_params:
     type: train
     cond_frames: 10
-    pred_frames: 10
+    pred_frames: 20
   valid_params:
     total_videos: 256
     type: valid
     cond_frames: 10
-    pred_frames: 10
+    pred_frames: 40
 
 flow_params:
   model_params:
@@ -73,10 +73,10 @@ flow_params:
     batch_size: 100
     valid_batch_size: 256
     dataloader_workers: 6
-    print_freq: 1 # 10
-    save_img_freq: 10 # 100
-    update_ckpt_freq: 10 # 5000
-    save_ckpt_freq: 20 # 2000
+    print_freq: 100
+    save_img_freq: 1000
+    update_ckpt_freq: 1000
+    save_ckpt_freq: 5000
     scales: [1, 0.5, 0.25]
     transform_params:
       sigma_affine: 0.05
@@ -86,30 +86,34 @@ flow_params:
       perceptual: [10, 10, 10, 10, 10]
       equivariance_shift: 10
       equivariance_affine: 10
+
+# iter / (batchsize*gpus) * epoch = 100000
+# epoch = 100000 / iter * (batchsize*gpus)
+#       = 100000 / 479 * (16*2) = 6681
   
 # FIXME: 修改成 LDM 更标准的 diffusion 格式
 
 diffusion_params:
   model_params:
-    null_cond_prob: 0.0
-    use_residual_flow: True
+    null_cond_prob: 0.1
+    use_residual_flow: False
     only_use_flow: True
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:
-    max_epochs: 4800
-    num_repeats: 100
+    max_epochs: 6681
+    num_repeats: 1
     epoch_milestones: [2000, 3600]
     lr: 2.0e-4
-    batch_size: 8
+    batch_size: 16
     valid_batch_size: 64
     dataloader_workers: 6
-    print_freq: 1 # 10
-    save_img_freq: 10 # 100
-    save_vid_freq: 10 # 1000
-    update_ckpt_freq: 10 # 5000
-    save_ckpt_freq: 20 # 2000
-    sample_vid_freq: 20 # 2000
+    print_freq: 100
+    save_img_freq: 1000
+    save_vid_freq: 1000
+    update_ckpt_freq: 1000
+    save_ckpt_freq: 5000
+    sample_vid_freq: 1000 # useless
 
 visualizer_params:
   kp_size: 2

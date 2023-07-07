@@ -189,8 +189,6 @@ class PreNorm(nn.Module):
 
 
 # building block modules
-
-
 class Block(nn.Module):
     def __init__(self, dim, dim_out, groups=8):
         super().__init__()
@@ -230,7 +228,6 @@ class ResnetBlock(nn.Module):
             scale_shift = time_emb.chunk(2, dim=1)
 
         h = self.block1(x, scale_shift=scale_shift)
-
         h = self.block2(h)
         return h + self.res_conv(x)
 
@@ -362,7 +359,6 @@ class Attention(nn.Module):
 
 
 # model
-
 class Unet3D(nn.Module):
     def __init__(
             self,
@@ -411,12 +407,10 @@ class Unet3D(nn.Module):
         self.init_temporal_attn = Residual(PreNorm(init_dim, temporal_attn(init_dim)))
 
         # dimensions
-
         dims = [init_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
 
         # time conditioning
-
         time_dim = dim * 4
         self.time_mlp = nn.Sequential(
             SinusoidalPosEmb(dim),
@@ -542,9 +536,8 @@ class Unet3D(nn.Module):
 
         time_rel_pos_bias = self.time_rel_pos_bias(x.shape[2], device=x.device)
 
-        x = self.init_conv(x)
+        x = self.init_conv(x)        
         r = x.clone()
-
         x = self.init_temporal_attn(x, pos_bias=time_rel_pos_bias)
 
         t = self.time_mlp(time) if exists(self.time_mlp) else None
@@ -640,8 +633,7 @@ class GaussianDiffusion(nn.Module):
         self.num_timesteps = int(timesteps)
         self.loss_type = loss_type
 
-        self.sampling_timesteps = default(sampling_timesteps,
-                                          timesteps)
+        self.sampling_timesteps = default(sampling_timesteps, timesteps)
         self.is_ddim_sampling = self.sampling_timesteps < timesteps
         if self.is_ddim_sampling:
             print("using ddim samping with %d steps" % sampling_timesteps)
@@ -709,11 +701,15 @@ class GaussianDiffusion(nn.Module):
 
     def p_mean_variance(self, x, t, fea, clip_denoised: bool, cond=None, cond_scale=1.):
         fea = fea.unsqueeze(dim=2).repeat(1, 1, x.size(2), 1, 1)
-        x_recon = self.predict_start_from_noise(x, t=t, noise=self.denoise_fn.forward_with_cond_scale(torch.cat([x, fea], dim=1),
-                                                                                                      t,
-                                                                                                      cond=cond,
-                                                                                                      cond_scale=cond_scale))
-
+        epsilon_noise = self.denoise_fn.forward_with_cond_scale(
+            torch.cat([x, fea], dim=1),
+            cond_scale=cond_scale
+        )
+        x_recon = self.predict_start_from_noise(
+            x, 
+            t=t, 
+            noise=epsilon_noise
+        )
         if clip_denoised:
             s = 1.
             if self.use_dynamic_thres:
@@ -749,7 +745,6 @@ class GaussianDiffusion(nn.Module):
 
         b = shape[0]
         img = torch.randn(shape, device=device)
-
         for i in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
             img = self.p_sample(img, torch.full((b,), i, device=device, dtype=torch.long), fea, cond=cond,
                                 cond_scale=cond_scale)

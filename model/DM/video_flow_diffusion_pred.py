@@ -14,7 +14,7 @@ from einops_exts import rearrange_many
 
 from rotary_embedding_torch import RotaryEmbedding
 
-from DM.modules.text import tokenize, bert_embed, BERT_MODEL_DIM
+from model.DM.text import tokenize, bert_embed, BERT_MODEL_DIM
 
 
 # helpers functions
@@ -189,8 +189,6 @@ class PreNorm(nn.Module):
 
 
 # building block modules
-
-
 class Block(nn.Module):
     def __init__(self, dim, dim_out, groups=8):
         super().__init__()
@@ -230,7 +228,6 @@ class ResnetBlock(nn.Module):
             scale_shift = time_emb.chunk(2, dim=1)
 
         h = self.block1(x, scale_shift=scale_shift)
-
         h = self.block2(h)
         return h + self.res_conv(x)
 
@@ -362,7 +359,6 @@ class Attention(nn.Module):
 
 
 # model
-
 class Unet3D(nn.Module):
     def __init__(
             self,
@@ -411,12 +407,10 @@ class Unet3D(nn.Module):
         self.init_temporal_attn = Residual(PreNorm(init_dim, temporal_attn(init_dim)))
 
         # dimensions
-
         dims = [init_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
 
         # time conditioning
-
         time_dim = dim * 4
         self.time_mlp = nn.Sequential(
             SinusoidalPosEmb(dim),
@@ -542,9 +536,8 @@ class Unet3D(nn.Module):
 
         time_rel_pos_bias = self.time_rel_pos_bias(x.shape[2], device=x.device)
 
-        x = self.init_conv(x)
+        x = self.init_conv(x)        
         r = x.clone()
-
         x = self.init_temporal_attn(x, pos_bias=time_rel_pos_bias)
 
         t = self.time_mlp(time) if exists(self.time_mlp) else None
@@ -709,8 +702,17 @@ class GaussianDiffusion(nn.Module):
     def p_mean_variance(self, x_cond, x, t, fea, clip_denoised: bool, cond=None, cond_scale=1.):
         x_c = torch.cat([x_cond,x],dim=2)
         fea = fea.unsqueeze(dim=2).repeat(1, 1, x_c.size(2), 1, 1)
-        epsilon_noise = self.denoise_fn.forward_with_cond_scale(torch.cat([x_c, fea], dim=1), t, cond=cond, cond_scale=cond_scale)
-        x_recon = self.predict_start_from_noise(x, t=t, noise=epsilon_noise[:,:,x_cond.size(2):])
+        epsilon_noise = self.denoise_fn.forward_with_cond_scale(
+            torch.cat([x_c, fea], dim=1),
+            t, 
+            cond=cond, 
+            cond_scale=cond_scale
+        )
+        x_recon = self.predict_start_from_noise(
+            x, 
+            t=t, 
+            noise=epsilon_noise[:,:,x_cond.size(2):]
+        )
 
         if clip_denoised:
             s = 1.

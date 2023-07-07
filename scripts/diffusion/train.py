@@ -31,6 +31,7 @@ def train(
     ):
 
     print(config)
+    print(device_ids)
     
     model = FlowDiffusion(
         config=config,
@@ -83,7 +84,6 @@ def train(
                 start_step = int(math.ceil(checkpoint['example'] / train_params['batch_size']))
                 start_epoch = checkpoint['epoch']
 
-                print("ckpt['example']", checkpoint['example'])
                 print("start_step", start_step)
                 print("start_epoch", start_epoch)
 
@@ -155,25 +155,36 @@ def train(
 
             real_vids = rearrange(real_vids, 'b t c h w -> b c t h w')
 
-            print(real_vids.shape)
-            # torch.Size([bs, length, c, h, w])
+            # print(real_vids.shape)
+            # torch.Size([8, 20, 3, 64, 64])
+            # torch.Size([bs, c, length, h, w])
             ref_imgs = real_vids[:, :, dataset_params['train_params']['cond_frames']-1, :, :].clone().detach()
-            bs = real_vids.size(0)
+            real_vid = real_vids[:, :, :dataset_params['train_params']['cond_frames'] + dataset_params['train_params']['pred_frames']].cuda()
+            
+            optimizer.zero_grad()
+            ret = model(real_vid)
 
-            model.module.set_train_input(
-                cond_frame_num=dataset_params['train_params']['cond_frames'], 
-                train_frame_num=dataset_params['train_params']['pred_frames'], 
-                tot_frame_num=dataset_params['train_params']['cond_frames'] + dataset_params['train_params']['pred_frames']
-            )
+            # print(ret['loss'].mean().item())
+            # print(ret['rec_loss'].mean().item())
+            # print(ret['rec_warp_loss'].mean().item())
 
-            ret = model.module.optimize_parameters(real_vids[:,:,:dataset_params['train_params']['cond_frames'] + dataset_params['train_params']['pred_frames']].cuda(), optimizer)
+            loss_ = ret['loss'].mean()
+            loss_rec = ret['rec_loss'].mean()
+            loss_rec_warp = ret['rec_warp_loss'].mean()
+
+            if model.module.only_use_flow:
+                loss_.backward()
+            else:
+                (loss_ + loss_rec + loss_rec_warp).backward()
+            optimizer.step()
 
             batch_time.update(timeit.default_timer() - iter_end)
             iter_end = timeit.default_timer()
 
-            losses.update(ret['loss'], bs)
-            losses_rec.update(ret['rec_loss'], bs)
-            losses_warp.update(ret['rec_warp_loss'], bs)
+            bs = real_vids.size(0)
+            losses.update(loss_.item(), bs)
+            losses_rec.update(loss_rec.item(), bs)
+            losses_warp.update(loss_rec_warp.item(), bs)
 
             if actual_step % train_params["print_freq"] == 0:
                 print('iter: [{0}]{1}/{2}\t'
@@ -212,16 +223,29 @@ def train(
                 save_real_conf = conf2fig(ret['real_vid_conf'][0, :, dataset_params['train_params']['cond_frames']+dataset_params['train_params']['pred_frames']//2], img_size=dataset_params['frame_shape'])
                 save_fake_conf = conf2fig(ret['fake_vid_conf'][0, :, dataset_params['train_params']['pred_frames']//2], img_size=dataset_params['frame_shape'])
                 new_im = Image.new('RGB', (msk_size * 5, msk_size * 2))
+                
+                # imgshot
+                # -------------------------------------------------------
+                # | src | real_out  | fake_out  | real_grid | real_conf |
+                # -------------------------------------------------------
+                # | tar | real_warp | fake_warp | fake_grid | fake_conf |
+                # -------------------------------------------------------
+                
                 new_im.paste(Image.fromarray(save_src_img, 'RGB'), (0, 0))
                 new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, msk_size))
+                
                 new_im.paste(Image.fromarray(save_real_out_img, 'RGB'), (msk_size, 0))
                 new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size, msk_size))
+                
                 new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size * 2, 0))
                 new_im.paste(Image.fromarray(save_fake_warp_img, 'RGB'), (msk_size * 2, msk_size))
+                
                 new_im.paste(Image.fromarray(save_real_grid, 'RGB'), (msk_size * 3, 0))
                 new_im.paste(Image.fromarray(save_fake_grid, 'RGB'), (msk_size * 3, msk_size))
+                
                 new_im.paste(Image.fromarray(save_real_conf, 'L'), (msk_size * 4, 0))
                 new_im.paste(Image.fromarray(save_fake_conf, 'L'), (msk_size * 4, msk_size))
+                
                 new_im_name = 'B' + format(train_params["batch_size"], "04d") + '_S' + format(actual_step, "06d") \
                               + '_' + format(real_names[0], "06d") + ".png"
                 new_im_file = os.path.join(config["imgshots"], new_im_name)
@@ -248,14 +272,26 @@ def train(
                     save_real_conf = conf2fig(ret['real_vid_conf'][0, :, nf], img_size=dataset_params['frame_shape'])
                     save_fake_conf = conf2fig(ret['fake_vid_conf'][0, :, nf - dataset_params['train_params']['cond_frames']], img_size=dataset_params['frame_shape'])
                     new_im = Image.new('RGB', (msk_size * 5, msk_size * 2))
+                    
+                    # videoshot
+                    # -------------------------------------------------------
+                    # | src | real_out  | fake_out  | real_grid | real_conf |
+                    # -------------------------------------------------------
+                    # | tar | real_warp | fake_warp | fake_grid | fake_conf |
+                    # -------------------------------------------------------
+                    
                     new_im.paste(Image.fromarray(save_src_img, 'RGB'), (0, 0))
                     new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, msk_size))
+                    
                     new_im.paste(Image.fromarray(save_real_out_img, 'RGB'), (msk_size, 0))
                     new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size, msk_size))
+                    
                     new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size * 2, 0))
                     new_im.paste(Image.fromarray(save_fake_warp_img, 'RGB'), (msk_size * 2, msk_size))
+                    
                     new_im.paste(Image.fromarray(save_real_grid, 'RGB'), (msk_size * 3, 0))
                     new_im.paste(Image.fromarray(save_fake_grid, 'RGB'), (msk_size * 3, msk_size))
+                    
                     new_im.paste(Image.fromarray(save_real_conf, 'L'), (msk_size * 4, 0))
                     new_im.paste(Image.fromarray(save_fake_conf, 'L'), (msk_size * 4, msk_size))
                     new_im_arr = np.array(new_im)
@@ -314,6 +350,7 @@ def train(
                 print('taking snapshot ...')
                 torch.save({
                         'example': actual_step * train_params["batch_size"],
+                        'epoch': epoch_cnt,
                         'diffusion': model.module.diffusion.state_dict(),
                         'optimizer': optimizer.state_dict()
                     },
@@ -325,6 +362,7 @@ def train(
                 checkpoint_save_path=os.path.join(config["snapshots"], 'flowdiff.pth')
                 torch.save({
                         'example': actual_step * train_params["batch_size"],
+                        'epoch': epoch_cnt,
                         'diffusion': model.module.diffusion.state_dict(),
                         'optimizer': optimizer.state_dict()
                     },
@@ -371,11 +409,13 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
 
     dataset_params = config['dataset_params']
     train_params = config['diffusion_params']['train_params']
+    cond_frames = dataset_params['valid_params']['cond_frames']
+    total_pred_frames = dataset_params['valid_params']['pred_frames']
+    pred_frames = dataset_params['train_params']['pred_frames']
 
     from math import ceil
-    NUM_ITER = ceil(dataset_params['valid_params']['total_videos'] / train_params['valid_batch_size'])
-    cond_frames = dataset_params['valid_params']['cond_frames']
-    pred_frames = dataset_params['valid_params']['pred_frames']
+    NUM_ITER    = ceil(dataset_params['valid_params']['total_videos'] / train_params['valid_batch_size'])
+    NUM_AUTOREG = ceil(total_pred_frames / pred_frames)
     
     # b t c h w [0-1]
     origin_videos = []
@@ -389,15 +429,20 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         real_vids = rearrange(real_vids, 'b t c h w -> b c t h w')
 
         origin_videos.append(real_vids)
+        pred_video = []
 
-        model.set_sample_input(
-            cond_frame_num=cond_frames, 
-            tot_frame_num=cond_frames + pred_frames
-        )
+        i_real_vids = real_vids[:,:,:cond_frames]
 
-        pred_video = model.sample_one_video(cond_scale=1.0, real_vid=real_vids.cuda())['sample_out_vid'][:,:,cond_frames:].clone().detach().cpu()
+        for i_autoreg in range(NUM_AUTOREG):
 
-        print("pred_video", pred_video.shape)
+            i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'][:,:,cond_frames:].clone().detach().cpu()
+            print(f'[{i_autoreg}/{NUM_AUTOREG}] i_pred_video: {i_pred_video.shape}')
+
+            pred_video.append(i_pred_video)
+
+            i_real_vids = i_pred_video[:,:,-cond_frames:]
+
+        pred_video = torch.cat(pred_video, dim=2)
 
         res_video = torch.cat([real_vids[:, :, :cond_frames, :, :], pred_video], dim=2)
         result_videos.append(res_video)

@@ -275,7 +275,7 @@ class Block_tem(nn.Module):
 
 
 class ResnetBlock(nn.Module):
-    def __init__(self, dim, dim_out, *, time_emb_dim=None, cond_frames_num=0, groups=8):
+    def __init__(self, dim, dim_out, *, time_emb_dim=None, groups=8):
         super().__init__()
         self.mlp = nn.Sequential(
             nn.SiLU(),
@@ -407,19 +407,27 @@ class MotionAdaptor(nn.Module):
         super(MotionAdaptor, self).__init__()
 
         self.N_T = N_T
+        
+        enc_layers = []
+        
         # channel in->channel hid
-        enc_layers = [Inception(channel_in, channel_hid//2, channel_hid, incep_ker= incep_ker, groups=groups)]
+        enc_layers.append(Inception(channel_in, channel_hid//2, channel_hid, incep_ker=incep_ker, groups=groups))
+        
         # channel hid->channel hid
         for _ in range(1, N_T):
-            enc_layers.append(Inception(channel_hid, channel_hid//2, channel_hid, incep_ker= incep_ker, groups=groups))
+            enc_layers.append(Inception(channel_hid, channel_hid//2, channel_hid, incep_ker=incep_ker, groups=groups))
 
+        dec_layers = []
+        
         # channel hid->channel hid
-        dec_layers = [Inception(channel_hid, channel_hid//2, channel_hid, incep_ker= incep_ker, groups=groups)]
+        dec_layers.append(Inception(channel_hid, channel_hid//2, channel_hid, incep_ker=incep_ker, groups=groups))
+        
         # channel hid + skip -> channel hid
         for _ in range(1, N_T-1):
-            dec_layers.append(Inception(2*channel_hid, channel_hid//2, channel_hid, incep_ker= incep_ker, groups=groups))
+            dec_layers.append(Inception(2*channel_hid, channel_hid//2, channel_hid, incep_ker=incep_ker, groups=groups))
+            
         # channel hid + skip -> channel output
-        dec_layers.append(Inception(2*channel_hid, channel_hid//2, channel_out, incep_ker= incep_ker, groups=groups))
+        dec_layers.append(Inception(2*channel_hid, channel_hid//2, channel_out, incep_ker=incep_ker, groups=groups))
 
         self.enc = nn.Sequential(*enc_layers)
         self.dec = nn.Sequential(*dec_layers)
@@ -559,7 +567,8 @@ class Unet3D(nn.Module):
         # temporal attention and its relative positional encoding
 
         rotary_emb = RotaryEmbedding(min(32, attn_dim_head))
-
+        
+        # TODO: 
         temporal_attn = lambda dim: EinopsToAndFrom('b c f h w', 'b (h w) f c',
                                                     Attention(dim, heads=attn_heads, dim_head=attn_dim_head,
                                                               rotary_emb=rotary_emb))
@@ -574,14 +583,14 @@ class Unet3D(nn.Module):
         assert is_odd(init_kernel_size)
 
         init_padding = init_kernel_size // 2
-        self.init_conv = nn.Conv3d(channels, init_dim, (1, init_kernel_size, init_kernel_size),
+        self.init_conv      = nn.Conv3d(channels, init_dim, 
+                                   kernel_size=(1, init_kernel_size, init_kernel_size),
                                    padding=(0, init_padding, init_padding))
-        self.init_cond_conv = nn.Conv3d(cond_channels, motion_dim, (1, init_kernel_size, init_kernel_size),
+        self.init_cond_conv = nn.Conv3d(cond_channels, motion_dim, 
+                                   kernel_size=(1, init_kernel_size, init_kernel_size),
                                    padding=(0, init_padding, init_padding))
-        self.init_temporal_attn = Residual(PreNorm(init_dim, temporal_attn(init_dim)))
+        self.init_temporal_attn      = Residual(PreNorm(init_dim,   temporal_attn(init_dim)))
         self.init_cond_temporal_attn = Residual(PreNorm(motion_dim, temporal_attn(motion_dim)))
-
-        
 
         # dimensions
         dims = [init_dim, *map(lambda m: dim * m, dim_mults)]
@@ -621,8 +630,7 @@ class Unet3D(nn.Module):
         # block type
 
         block_klass = partial(ResnetBlock, groups=resnet_groups)
-        block_klass_motion = partial(ResnetBlock_w_Motion, groups=resnet_groups)
-        block_klass_motion_cond = partial(block_klass_motion, time_emb_dim=cond_dim)
+        block_klass_motion_cond = partial(ResnetBlock_w_Motion, groups=resnet_groups, time_emb_dim=cond_dim)
         
         self.motion_enc.append(nn.ModuleList([
             block_klass(motion_dim, motion_dim),
@@ -631,7 +639,7 @@ class Unet3D(nn.Module):
             Residual(PreNorm(motion_dim, temporal_attn(motion_dim))),
             MotionAdaptor(motion_dim*self.tc, 256, motion_dim*self.tp)
         ]))
-
+        
         # modules for all layers
 
         for ind, (dim_in, dim_out) in enumerate(in_out):
@@ -648,9 +656,10 @@ class Unet3D(nn.Module):
         mid_dim = dims[-1]
         self.mid_block1 = block_klass_motion_cond(mid_dim, mid_dim, motion_dim=motion_dim)
 
+        # TODO: 
         spatial_attn = EinopsToAndFrom('b c f h w', 'b f (h w) c', Attention(mid_dim, heads=attn_heads))
 
-        self.mid_spatial_attn = Residual(PreNorm(mid_dim, spatial_attn))
+        self.mid_spatial_attn =  Residual(PreNorm(mid_dim, spatial_attn))
         self.mid_temporal_attn = Residual(PreNorm(mid_dim, temporal_attn(mid_dim)))
 
         self.mid_block2 = block_klass_motion_cond(mid_dim, mid_dim, motion_dim=motion_dim)
@@ -722,9 +731,10 @@ class Unet3D(nn.Module):
         
         # x = torch.cat([x, cond_frames], dim=2)
 
-        focus_present_mask = default(focus_present_mask, lambda: prob_mask_like((batch,), prob_focus_present, device=device))
+        focus_present_mask = default(focus_present_mask,
+                                     lambda: prob_mask_like((batch,), prob_focus_present, device=device))
 
-        time_rel_pos_bias = self.time_rel_pos_bias(x.shape[2], device=x.device)
+        time_rel_pos_bias      = self.time_rel_pos_bias(x.shape[2],           device=x.device)
         time_cond_rel_pos_bias = self.time_rel_pos_bias(cond_frames.shape[2], device=x.device)
 
         x = self.init_conv(x)        

@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument("--config",default="./config/smmnist64.yaml",help="path to config")
     parser.add_argument("--log_dir",default='./logs_training/diffusion', help="path to log into")
     parser.add_argument("--checkpoint", # use the pretrained Taichi model provided by Snap
-                        default="./pth/taichi256.pth",
+                        default="",
                         help="path to checkpoint to restore")
     parser.add_argument("--device_ids", default="0,1", type=lambda x: list(map(int, x.split(','))),
                         help="Names of the devices comma separated.")
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         },
         name=f"{config['experiment_name']}{postfix}",
         dir=log_dir,
-        tags=["diffusion"]
+        tags=["flow"]
     )
 
     print("postfix:", postfix)

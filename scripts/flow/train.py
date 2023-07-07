@@ -6,6 +6,9 @@ import numpy as np
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
 
+import torch.backends.cudnn as cudnn
+from utils.seed import setup_seed
+
 import wandb
 
 from model.LFAE.model import ReconstructionModel
@@ -80,13 +83,12 @@ def train(
     start_epoch = 0
     start_step = 0
 
-    if checkpoint is not None:
+    if checkpoint != "":
         ckpt = torch.load(checkpoint)
         if config["set_start"]:
             start_step = int(math.ceil(ckpt['example'] / train_params['batch_size']))
             start_epoch = ckpt['epoch']
 
-            print("ckpt['example']", ckpt['example'])
             print("start_step", start_step)
             print("start_epoch", start_epoch)
         
@@ -143,10 +145,20 @@ def train(
         for i_iter, x in enumerate(train_dataloader):
             actual_step = int(start_step + cnt)
             data_time.update(timeit.default_timer() - iter_end)
+            
             optimizer.zero_grad()
             losses, generated = model(x)
-            loss_values = [val.mean() for val in losses.values()]
-            loss = sum(loss_values)
+
+            # print(losses['perceptual'].mean().item())
+            # print(losses['equivariance_shift'].mean().item())
+            # print(losses['equivariance_affine'].mean().item())
+
+            loss_perceptual = losses['perceptual'].mean()
+            loss_equivariance_shift = losses['equivariance_shift'].mean()
+            loss_equivariance_affine = losses['equivariance_affine'].mean()
+
+            loss = loss_perceptual + loss_equivariance_shift + loss_equivariance_affine
+            
             loss.backward()
             optimizer.step()
 
@@ -154,10 +166,10 @@ def train(
             iter_end = timeit.default_timer()
 
             bs = x['source'].size(0)
-            total_losses.update(loss, bs)
-            losses_perc.update(loss_values[0], bs)
-            losses_equiv_shift.update(loss_values[1], bs)
-            losses_equiv_affine.update(loss_values[2], bs)
+            total_losses.update(loss.item(), bs)
+            losses_perc.update(loss_perceptual.item(), bs)
+            losses_equiv_shift.update(loss_equivariance_shift.item(), bs)
+            losses_equiv_affine.update(loss_equivariance_affine.item(), bs)
 
             if actual_step % train_params["print_freq"] == 0:
                 print('iter: [{0}]{1}/{2}\t'

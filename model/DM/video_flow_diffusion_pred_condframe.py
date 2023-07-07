@@ -14,7 +14,7 @@ from einops_exts import rearrange_many
 
 from rotary_embedding_torch import RotaryEmbedding
 
-from DM.modules.text import tokenize, bert_embed, BERT_MODEL_DIM
+from model.DM.text import tokenize, bert_embed, BERT_MODEL_DIM
 
 
 # helpers functions

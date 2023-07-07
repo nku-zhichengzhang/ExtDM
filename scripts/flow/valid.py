@@ -92,8 +92,6 @@ if __name__ == "__main__":
 
     model.eval()
 
-    setup_seed(args.random_seed)
-
     valid_dataloader = data.DataLoader(VideoDataset(
                                     data_dir=args.data_dir,
                                     type=args.data_type, 

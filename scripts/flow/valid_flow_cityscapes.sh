@@ -7,10 +7,11 @@ python ./scripts/flow/valid.py \
     --batch_size 256 \
     --input_size 128 \
     --config_path "./config/cityscapes128.yaml" \
-    --restore_from "./logs_training/flow/cityscapes128_test/snapshots/RegionMM.pth" \
+    --restore_from "./logs_training/flow_pretrained/cityscapes128_20region/snapshots/RegionMM.pth" \
     --log_dir "./logs_validation/flow/cityscapes128" \
     --data_dir "/mnt/sda/hjy/cityscapes/cityscapes_processed/" \
     --data_type "val" \
     --save-video True \
-    --random-seed 1234 \
+    --random-seed 1000 \
     --gpu "0"
+
