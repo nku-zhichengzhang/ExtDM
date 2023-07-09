@@ -94,7 +94,7 @@ diffusion_params:
   model_params:
     null_cond_prob: 0.0
     use_residual_flow: True
-    only_use_flow: True
+    only_use_flow: False # True
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:

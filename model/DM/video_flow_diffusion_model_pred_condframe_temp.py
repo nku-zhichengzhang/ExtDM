@@ -4,6 +4,7 @@
 # some codes based on https://github.com/lucidrains/video-diffusion-pytorch
 
 import os
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -132,6 +133,10 @@ class FlowDiffusion(nn.Module):
         real_out_img_list = []
         real_warped_img_list = []
         with torch.no_grad():
+            # make it random
+            # random_idx = random.randint(0, self.cond_frame_num-1)
+            # ref_img = real_vid[:,:,random_idx,:,:]
+            
             # reference image = condition frames [t-1]
             ref_img = real_vid[:,:,self.cond_frame_num-1,:,:]
                        
