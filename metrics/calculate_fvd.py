@@ -1,4 +1,4 @@
-from models.fvd.fvd import get_fvd_feats, frechet_distance, load_i3d_pretrained
+from metrics.fvd import get_fvd_feats, frechet_distance, load_i3d_pretrained
 import numpy as np
 import torch
 from tqdm import tqdm

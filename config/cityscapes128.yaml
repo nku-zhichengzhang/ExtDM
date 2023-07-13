@@ -9,6 +9,7 @@ experiment_name: cityscapes128
 
 dataset_params:
   root_dir: /mnt/sda/hjy/cityscapes/cityscapes_processed/
+  # root_dir: /mnt/sda/hjy/cityscapes/Cityscapes128_h5
   frame_shape: 128
   augmentation_params:
     flip_param:
@@ -65,7 +66,6 @@ flow_params:
         use_deformed_source: True
         use_covar_heatmap: True
         estimate_occlusion_map: True
-
   train_params:
     max_epochs: 344
     num_repeats: 50
@@ -92,25 +92,28 @@ flow_params:
 
 diffusion_params:
   model_params:
-    null_cond_prob: 0.0
-    use_residual_flow: True
-    only_use_flow: False # True
+    null_cond_prob: 0.1
+    use_residual_flow: False
+    only_use_flow: False
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:
-    max_epochs: 100
-    batch_size: 100
-    epoch_milestones: [3200, 4000]
+    max_epochs: 1076
+    num_repeats: 1
+    epoch_milestones: [320, 400]
     lr: 2.0e-4
-    valid_batch_size: 256
+    batch_size: 16
+    valid_batch_size: 64
+    dataloader_workers: 6
+    print_freq: 100
+    save_img_freq: 1000
+    save_vid_freq: 1000
+    update_ckpt_freq: 1000
+    save_ckpt_freq: 5000
+    sample_vid_freq: 1000 # useless
 
 visualizer_params:
   kp_size: 3
   draw_border: True
   colormap: 'gist_rainbow'
   region_bg_color: [1, 1, 1]
-
-# num_example_per_epoch = num_repeats * len                      = 50 * 2975    = 148750
-# num_step_per_epoch    = ceil(num_example_per_epoch/batch_size) = 297500 / 128 = 1163
-# final_step            = num_step_per_epoch * max_epochs        = 1163 * 172   = 200036
-# save_ckpt_freq        = 2000
