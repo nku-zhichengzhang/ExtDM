@@ -1,9 +1,9 @@
-# sh ./scripts/diffusion/train_diffusion_bair.sh
+# sh ./scripts/diffusion/train_diffusion_cityscapes.sh
 
 # 从头训练
 python ./scripts/diffusion/run.py \
-    --flowae_checkpoint ./logs_training/flow_pretrained/bair64/snapshots/RegionMM.pth \
-    --config ./config/bair64.yaml \
+    --flowae_checkpoint ./logs_training/flow_pretrained/cityscapes128_perspective/snapshots/RegionMM.pth \
+    --config ./config/cityscapes128.yaml \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \
     --postfix not_onlyflow
