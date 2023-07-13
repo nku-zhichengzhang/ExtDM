@@ -453,7 +453,7 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
 
         pred_video = torch.cat(pred_video, dim=2)
 
-        res_video = torch.cat([real_vids[:, :, :cond_frames, :, :], pred_video], dim=2)
+        res_video = torch.cat([real_vids[:, :, :cond_frames], pred_video[:, :, :total_pred_frames]], dim=2)
         result_videos.append(res_video)
 
     origin_videos = torch.cat(origin_videos)
