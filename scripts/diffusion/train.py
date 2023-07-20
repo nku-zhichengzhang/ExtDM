@@ -88,21 +88,21 @@ def train(
     if checkpoint is not None:
         if os.path.isfile(checkpoint):
             print("=> loading checkpoint '{}'".format(checkpoint))
-            checkpoint = torch.load(checkpoint)
+            ckpt = torch.load(checkpoint)
             if config["set_start"]:
-                start_step = int(math.ceil(checkpoint['example'] / train_params['batch_size']))
-                start_epoch = checkpoint['epoch']
+                start_step = int(math.ceil(ckpt['example'] / train_params['batch_size']))
+                start_epoch = ckpt['epoch']
 
                 print("start_step", start_step)
                 print("start_epoch", start_epoch)
 
             model_ckpt = model.diffusion.state_dict()
             for name, _ in model_ckpt.items():
-                model_ckpt[name].copy_(checkpoint['diffusion'][name])
+                model_ckpt[name].copy_(ckpt['diffusion'][name])
             model.diffusion.load_state_dict(model_ckpt)
             print("=> loaded checkpoint '{}'".format(checkpoint))
-            if "optimizer" in list(checkpoint.keys()):
-                optimizer.load_state_dict(checkpoint['optimizer'])
+            if "optimizer" in list(ckpt.keys()):
+                optimizer.load_state_dict(ckpt['optimizer'])
         else:
             print("=> no checkpoint found at '{}'".format(checkpoint))
     else:

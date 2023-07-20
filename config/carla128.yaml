@@ -8,7 +8,8 @@
 experiment_name: carla128
 
 dataset_params:
-  root_dir: /mnt/sda/hjy/fdm/CARLA_Town_01_h5
+  # root_dir: /mnt/sda/hjy/fdm/CARLA_Town_01_h5
+  root_dir: /mnt/sda/hjy/CARLA_Town_01_h5
   frame_shape: 128
   augmentation_params:
     flip_param:
@@ -99,7 +100,7 @@ diffusion_params:
   train_params:
     max_epochs: 7844
     num_repeats: 1
-    epoch_milestones: [3200, 4000]
+    epoch_milestones: [1600, 2000]
     lr: 2.0e-4
     batch_size: 16
     valid_batch_size: 64
