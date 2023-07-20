@@ -6,7 +6,7 @@ python ./scripts/diffusion/run.py \
     --config ./config/kth64.yaml \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \
-    --postfix not_onlyflow_not_random2
+    --postfix 0721
 
 # 预训练
 # python ./scripts/diffusion/run.py \

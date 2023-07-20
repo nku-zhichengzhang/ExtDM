@@ -87,27 +87,21 @@ flow_params:
       equivariance_shift: 10
       equivariance_affine: 10
 
-# iter / (batchsize*gpus) * epoch = 100000
-# epoch = 100000 / iter * (batchsize*gpus)
-#       = 100000 / 479 * (16*2) = 6681
-  
-# FIXME: 修改成 LDM 更标准的 diffusion 格式
-
 diffusion_params:
   model_params:
-    null_cond_prob: 0.1
+    null_cond_prob: 0.0
     use_residual_flow: False
-    only_use_flow: True
+    only_use_flow: False
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:
-    max_epochs: 6681
+    max_epochs: 3342 # 6681
     num_repeats: 1
-    epoch_milestones: [2000, 3600]
+    epoch_milestones: [2000, 2600]
     lr: 2.0e-4
-    batch_size: 16
-    valid_batch_size: 64
-    dataloader_workers: 6
+    batch_size: 8 # 16
+    valid_batch_size: 32 # 64
+    dataloader_workers: 8
     print_freq: 1 #00
     save_img_freq: 10 #00
     save_vid_freq: 10 #00
