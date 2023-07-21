@@ -19,7 +19,8 @@ import imageio
 import torch.backends.cudnn as cudnn
 from data.video_dataset import VideoDataset
 
-from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
+# from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
+from model.newDM.new_video_flow_diffusion_model import FlowDiffusion
 
 def train(
         config, 
@@ -144,6 +145,7 @@ def train(
     losses = AverageMeter()
     losses_rec = AverageMeter()
     losses_warp = AverageMeter()
+    losses_refined = AverageMeter()
 
     cnt = 0
     epoch_cnt = start_epoch
@@ -180,11 +182,13 @@ def train(
             loss_ = ret['loss'].mean()
             loss_rec = ret['rec_loss'].mean()
             loss_rec_warp = ret['rec_warp_loss'].mean()
+            loss_refined = ret['refined_loss'].mean()
 
             if model.module.only_use_flow:
                 loss_.backward()
             else:
-                (loss_ + loss_rec + loss_rec_warp).backward()
+                (loss_ + loss_rec + loss_refined).backward()
+                # (loss_ + loss_rec + loss_rec_warp).backward()
             optimizer.step()
 
             batch_time.update(timeit.default_timer() - iter_end)
@@ -194,12 +198,14 @@ def train(
             losses.update(loss_.item(), bs)
             losses_rec.update(loss_rec.item(), bs)
             losses_warp.update(loss_rec_warp.item(), bs)
+            losses_refined.update(loss_refined.item(), bs)
 
             if actual_step % train_params["print_freq"] == 0:
                 print('iter: [{0}]{1}/{2}\t'
                       'loss {loss.val:.7f} ({loss.avg:.7f})\t'
                       'loss_rec {loss_rec.val:.4f} ({loss_rec.avg:.4f})\t'
-                      'loss_warp {loss_warp.val:.4f} ({loss_warp.avg:.4f})'
+                      'loss_warp {loss_warp.val:.4f} ({loss_warp.avg:.4f})\t'
+                      'loss_refined {loss_refined.val:.4f} ({loss_refined.avg:.4f})'
                     .format(
                     cnt, actual_step, final_step,
                     batch_time=batch_time,
@@ -207,6 +213,7 @@ def train(
                     loss=losses,
                     loss_rec=losses_rec,
                     loss_warp=losses_warp,
+                    loss_refined=losses_refined,
                 ))
 
                 wandb.log({
@@ -214,6 +221,7 @@ def train(
                     "loss": losses.val, 
                     "loss_rec": losses_rec.val,
                     "loss_warp": losses_warp.val,
+                    "loss_refined": losses_refined.val,
                     "batch_time": batch_time.avg
                 })
 
@@ -443,8 +451,9 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         i_real_vids = real_vids[:,:,:cond_frames]
 
         for i_autoreg in range(NUM_AUTOREG):
-
-            i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'][:,:,cond_frames:].clone().detach().cpu()
+            i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_refined_out_vid'][:,:,cond_frames:].clone().detach().cpu()
+            # i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'][:,:,cond_frames:].clone().detach().cpu()
+            
             print(f'[{i_autoreg}/{NUM_AUTOREG}] i_pred_video: {i_pred_video.shape}')
 
             pred_video.append(i_pred_video)
