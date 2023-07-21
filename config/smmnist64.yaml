@@ -86,8 +86,6 @@ flow_params:
       perceptual: [10, 10, 10, 10, 10]
       equivariance_shift: 10
       equivariance_affine: 10
-  
-# FIXME: 修改成 LDM 更标准的 diffusion 格式
 
 diffusion_params:
   model_params:
