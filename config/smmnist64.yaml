@@ -114,6 +114,3 @@ visualizer_params:
   draw_border: True
   colormap: 'gist_rainbow'
   region_bg_color: [1, 1, 1]
-
-# 7min 1000step左右
-# [39000]39000 killed
