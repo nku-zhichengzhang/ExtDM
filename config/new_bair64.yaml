@@ -107,11 +107,11 @@ diffusion_params:
     batch_size: 32
     valid_batch_size: 64
     dataloader_workers: 8
-    print_freq: 1 #00
-    save_img_freq: 100 #0
-    save_vid_freq: 100 #0
-    update_ckpt_freq: 100 #0
-    save_ckpt_freq: 500 #0
+    print_freq: 100
+    save_img_freq: 1000
+    save_vid_freq: 1000
+    update_ckpt_freq: 1000
+    save_ckpt_freq: 5000
     sample_vid_freq: 1000 # useless
 
 visualizer_params:
