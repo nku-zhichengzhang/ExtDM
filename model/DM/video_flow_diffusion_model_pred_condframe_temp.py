@@ -153,10 +153,12 @@ class FlowDiffusion(nn.Module):
                 real_conf_list.append(generated["occlusion_map"])
                 real_out_img_list.append(generated["prediction"])
                 real_warped_img_list.append(generated["deformed"])
+        
         if self.is_train:
             # pred frames
             pred_frames = real_vid[:,:,self.cond_frame_num:self.cond_frame_num+self.pred_frame_num]
         del real_vid
+        
         torch.cuda.empty_cache()
 
         real_vid_grid = torch.stack(real_grid_list, dim=2)
@@ -179,9 +181,9 @@ class FlowDiffusion(nn.Module):
             else:
                 frames = torch.cat((real_vid_grid, real_vid_conf*2-1), dim=1)
 
-
             loss, pred = self.diffusion(frames[:,:,:self.cond_frame_num], frames[:,:,self.cond_frame_num:self.cond_frame_num+self.pred_frame_num], ref_img_fea)
             ret['loss'] = loss
+            
             with torch.no_grad():
                 fake_out_img_list = []
                 fake_warped_img_list = []
