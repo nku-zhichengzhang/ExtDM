@@ -108,7 +108,7 @@ diffusion_params:
     # epoch_milestones: [40,72] # [2000, 3600]
     lr: 2.0e-4
     batch_size: 32
-    valid_batch_size: 128
+    valid_batch_size: 64
     dataloader_workers: 6
     print_freq: 1 #00
     save_img_freq: 10 #00
