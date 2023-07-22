@@ -100,7 +100,8 @@ class FlowDiffusion(nn.Module):
             cond_num=dataset_params['train_params']['cond_frames'], 
             pred_num=dataset_params['train_params']['pred_frames'],
             middle_dim=64,
-            channels=3
+            channels=3,
+            adaptor_dim=64
         )
 
         self.cond_frame_num = dataset_params['train_params']['cond_frames']

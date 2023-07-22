@@ -208,12 +208,15 @@ class Block(nn.Module):
 
 # building block modules
 class Block_cond(nn.Module):
-    def __init__(self, dim, dim_out, groups=8):
+    def __init__(self, dim, dim_out, cond, pred, groups=8):
         super().__init__()
         self.tem_proj = nn.Conv3d(dim, dim, (3, 1, 1), padding=(1, 0, 0))
         self.spa_proj = nn.Conv3d(dim, dim, (1, 3, 3), padding=(0, 1, 1))
+        
+        # # b t c h w
+        self.out = nn.Conv3d(cond+pred, pred, (1, 1, 1), padding=(0, 0, 0))
+        
         self.norm1 = nn.GroupNorm(groups, dim)
-
         self.proj = nn.Conv3d(dim, dim_out, 3, padding=1)
         # self.norm2 = nn.GroupNorm(groups, dim_out)
         self.act = nn.SiLU()
@@ -229,24 +232,31 @@ class Block_cond(nn.Module):
         return feat_mean, feat_std
 
     def adaptive_instance_normalization(self, content_feat, style_feat):
-        content_feat = content_feat.permute(0,2,1,3,4).contiguous()
-        style_feat = style_feat.permute(0,2,1,3,4).contiguous()
-        assert (content_feat.size()[:2] == style_feat.size()[:2])
+        # b c t h w
+        content_feat = content_feat.contiguous()
+        style_feat = style_feat.contiguous()
+        
         size = content_feat.size()
         style_mean, style_std = self.calc_mean_std(style_feat)
         content_mean, content_std = self.calc_mean_std(content_feat)
 
         normalized_feat = (content_feat - content_mean.expand(size)) / content_std.expand(size)
-        return (normalized_feat * style_std.expand(size) + style_mean.expand(size)).permute(0,2,1,3,4).contiguous()
+        return (normalized_feat * style_std.expand(size) + style_mean.expand(size)).contiguous()
 
     def forward(self, x, guidance=None):
         if x.shape[-2:]!=guidance.shape[-2:]:
             guidance = F.interpolate(guidance, size=x.shape[-3:], mode='trilinear')
-        x = torch.cat([x, guidance], dim=1)
+        # b c t h w
+        print(x.shape, guidance.shape)
+        x = torch.cat([x, guidance], dim=2)
         x = self.spa_proj(x)
         x = self.tem_proj(x)
+        
+        x = rearrange(x, "b c t h w -> b t c h w")
+        x = self.out(x)
+        x = rearrange(x, "b t c h w -> b c t h w")
+        
         x = self.norm1(x)
-
         x = self.proj(x)
         x = self.adaptive_instance_normalization(x, guidance)
 
@@ -297,7 +307,7 @@ class ResnetBlock(nn.Module):
 
 
 class ResnetBlock_w_Motion(nn.Module):
-    def __init__(self, dim, dim_out, *, time_emb_dim=None, groups=8):
+    def __init__(self, dim, dim_out, cond, pred, *, time_emb_dim=None, groups=8):
         super().__init__()
         self.mlp = nn.Sequential(
             nn.SiLU(),
@@ -305,7 +315,7 @@ class ResnetBlock_w_Motion(nn.Module):
         ) if exists(time_emb_dim) else None
 
         self.block1 = Block(dim, dim_out, groups=groups)
-        self.block2 = Block_cond(dim_out, dim_out, groups=groups)
+        self.block2 = Block_cond(dim_out, dim_out, cond, pred, groups=groups)
         self.block3 = Block(dim_out, dim_out, groups=groups)
         self.res_conv = nn.Conv3d(dim, dim_out, 1) if dim != dim_out else nn.Identity()
 
@@ -320,7 +330,9 @@ class ResnetBlock_w_Motion(nn.Module):
         h = self.block1(x, scale_shift=scale_shift)
         h = self.block2(h, x_cond)
         h = self.block3(h)
-        return h + self.res_conv(x)
+        r = self.res_conv(x)
+        print(h.shape, r.shape)
+        return h + r
 
 class SpatialLinearAttention(nn.Module):
     def __init__(self, dim, heads=4, dim_head=32):
@@ -578,19 +590,19 @@ class Unet3D(nn.Module):
         assert is_odd(init_kernel_size)
 
         init_padding = init_kernel_size // 2
-        self.init_conv      = nn.Conv3d(channels, init_dim, 
-                                   kernel_size=(1, init_kernel_size, init_kernel_size),
-                                   padding=(0, init_padding, init_padding))
-        # self.init_cond_conv = nn.Conv3d(cond_channels, motion_dim, 
-        #                            kernel_size=(1, init_kernel_size, init_kernel_size),
-        #                            padding=(0, init_padding, init_padding))
-        self.init_temporal_attn      = Residual(PreNorm(init_dim,   temporal_attn(init_dim)))
-        # self.init_cond_temporal_attn = Residual(PreNorm(motion_dim, temporal_attn(motion_dim)))
+        
+        self.init_conv  = nn.Conv3d(
+            channels, init_dim, 
+            kernel_size=(1, init_kernel_size, init_kernel_size),
+            padding=(0, init_padding, init_padding)    
+        )
+        
+        self.init_temporal_attn = Residual(PreNorm(init_dim, temporal_attn(init_dim)))
 
         # dimensions
         dims = [init_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
-
+        
         # time conditioning
         time_dim = dim * 4
         self.time_mlp = nn.Sequential(
@@ -625,31 +637,22 @@ class Unet3D(nn.Module):
         # block type
 
         block_klass = partial(ResnetBlock, groups=resnet_groups)
-        block_klass_cond = partial(ResnetBlock_w_Motion, groups=resnet_groups)
-        
-        # self.motion_enc.append(nn.ModuleList([
-        #     block_klass(motion_dim, motion_dim),
-        #     block_klass(motion_dim, motion_dim),
-        #     Residual(PreNorm(motion_dim, SpatialLinearAttention(motion_dim, heads=attn_heads))) if use_sparse_linear_attn else nn.Identity(),
-        #     Residual(PreNorm(motion_dim, temporal_attn(motion_dim))),
-        #     MotionAdaptor(motion_dim*self.tc, 256, motion_dim*self.tp)
-        # ]))
         
         # modules for all layers
 
         for ind, (dim_in, dim_out) in enumerate(in_out):
             is_last = ind >= (num_resolutions - 1)
-
+            
             self.downs.append(nn.ModuleList([
-                block_klass_cond(dim_in, dim_out),
-                block_klass_cond(dim_out, dim_out),
+                block_klass(dim_in, dim_out),
+                block_klass(dim_out, dim_out),
                 Residual(PreNorm(dim_out, SpatialLinearAttention(dim_out, heads=attn_heads))) if use_sparse_linear_attn else nn.Identity(),
                 Residual(PreNorm(dim_out, temporal_attn(dim_out))),
                 Downsample(dim_out) if not is_last else nn.Identity()
             ]))
 
         mid_dim = dims[-1]
-        self.mid_block1 = block_klass_cond(mid_dim, mid_dim)
+        self.mid_block1 = block_klass(mid_dim, mid_dim)
 
         # TODO: 
         spatial_attn = EinopsToAndFrom('b c f h w', 'b f (h w) c', Attention(mid_dim, heads=attn_heads))
@@ -657,20 +660,24 @@ class Unet3D(nn.Module):
         self.mid_spatial_attn =  Residual(PreNorm(mid_dim, spatial_attn))
         self.mid_temporal_attn = Residual(PreNorm(mid_dim, temporal_attn(mid_dim)))
 
-        self.mid_block2 = block_klass_cond(mid_dim, mid_dim)
+        self.mid_block2 = block_klass(mid_dim, mid_dim)
 
         for ind, (dim_in, dim_out) in enumerate(reversed(in_out)):
             is_last = ind >= (num_resolutions - 1)
 
             self.ups.append(nn.ModuleList([
-                block_klass_cond(dim_out * 2, dim_in),
-                block_klass_cond(dim_in, dim_in),
+                block_klass(dim_out * 2, dim_in),
+                block_klass(dim_in, dim_in),
                 Residual(PreNorm(dim_in, SpatialLinearAttention(dim_in, heads=attn_heads))) if use_sparse_linear_attn else nn.Identity(),
                 Residual(PreNorm(dim_in, temporal_attn(dim_in))),
                 Upsample(dim_in, use_deconv, padding_mode) if not is_last else nn.Identity()
             ]))
-
-        # out_dim = default(out_grid_dim, channels)
+            
+        self.out_conv = nn.Sequential(
+            block_klass(self.tc+self.tp, dim),
+            nn.Conv3d(dim, self.tp, 1)
+        )
+        
         self.final_conv = nn.Sequential(
             block_klass(dim * 2, dim),
             nn.Conv3d(dim, out_grid_dim, 1)
@@ -678,6 +685,7 @@ class Unet3D(nn.Module):
 
         # added by nhm
         self.use_final_activation = use_final_activation
+        
         if self.use_final_activation:
             self.final_activation = nn.Tanh()
         else:
@@ -724,23 +732,17 @@ class Unet3D(nn.Module):
         assert tc == self.tc
         assert tp == self.tp
         
-        # x = torch.cat([x, cond_frames], dim=2)
+        # b c t h w
+        x = torch.cat([x, cond_frames], dim=2)
 
-        focus_present_mask = default(focus_present_mask,
-                                     lambda: prob_mask_like((batch,), prob_focus_present, device=device))
+        focus_present_mask = default(focus_present_mask, lambda: prob_mask_like((batch,), prob_focus_present, device=device))
 
         time_rel_pos_bias      = self.time_rel_pos_bias(x.shape[2],           device=x.device)
-        time_cond_rel_pos_bias = self.time_rel_pos_bias(cond_frames.shape[2], device=x.device)
 
         x = self.init_conv(x)        
         r = x.clone()
         x = self.init_temporal_attn(x, pos_bias=time_rel_pos_bias)
         
-        cond_frames = self.init_conv(cond_frames)        
-        cond_frames = self.init_temporal_attn(cond_frames, pos_bias=time_cond_rel_pos_bias)
-        # cond_frames = self.init_cond_conv(cond_frames)
-        # cond_frames = self.init_cond_temporal_attn(cond_frames, pos_bias=time_cond_rel_pos_bias)
-
         # for block1, block2, spatial_attn, temporal_attn, adaptor in self.motion_enc:
         #     cond_frames = block1(cond_frames)
         #     cond_frames = block2(cond_frames)
@@ -763,28 +765,32 @@ class Unet3D(nn.Module):
         h = []
 
         for block1, block2, spatial_attn, temporal_attn, downsample in self.downs:
-            x = block1(x, cond_frames, t)
-            x = block2(x, cond_frames, t)
-
+            x = block1(x, t)
+            x = block2(x, t)
             x = spatial_attn(x)
             x = temporal_attn(x, pos_bias=time_rel_pos_bias, focus_present_mask=focus_present_mask)
             h.append(x)
             x = downsample(x)
 
-        x = self.mid_block1(x, cond_frames, t)
+        x = self.mid_block1(x, t)
         x = self.mid_spatial_attn(x)
         x = self.mid_temporal_attn(x, pos_bias=time_rel_pos_bias, focus_present_mask=focus_present_mask)
-        x = self.mid_block2(x, cond_frames, t)
+        x = self.mid_block2(x, t)
 
         for block1, block2, spatial_attn, temporal_attn, upsample in self.ups:
             x = torch.cat((x, h.pop()), dim=1)
-            x = block1(x, cond_frames, t)
-            x = block2(x, cond_frames, t)
+            x = block1(x, t)
+            x = block2(x, t)
             x = spatial_attn(x)
             x = temporal_attn(x, pos_bias=time_rel_pos_bias, focus_present_mask=focus_present_mask)
             x = upsample(x)
 
+        x = rearrange(x, "b c t h w -> b t c h w")
+        x = self.out_conv(x)
+        x = rearrange(x, "b t c h w -> b c t h w")
+        
         x = torch.cat((x, r), dim=1)
+        
         return torch.cat((self.final_conv(x), self.occlusion_map(x)), dim=1)
 
 # gaussian diffusion trainer class
