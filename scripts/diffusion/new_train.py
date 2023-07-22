@@ -112,11 +112,8 @@ def train(
     else:
         print("NO checkpoint found!")
 
-    # scheduler = MultiStepLR(optimizer, train_params['epoch_milestones'], gamma=0.1, last_epoch=start_epoch - 1)
-    
-    scheduler = LambdaLinearScheduler(**train_params['scheduler_param'])
-    
-    scheduler = LambdaLR(optimizer, lr_lambda=scheduler.schedule)
+    linear_scheduler = LambdaLinearScheduler(**train_params['scheduler_param'])
+    scheduler = LambdaLR(optimizer, lr_lambda=linear_scheduler.schedule)
     
     train_dataloader = DataLoader(
         train_dataset,
@@ -225,6 +222,7 @@ def train(
 
                 wandb.log({
                     "actual_step": actual_step,
+                    "lr": optimizer.param_groups[0]["lr"],
                     "loss": losses.val, 
                     "loss_rec": losses_rec.val,
                     "loss_warp": losses_warp.val,
@@ -246,22 +244,23 @@ def train(
                                           grid_size=32, img_size=msk_size)
                 save_real_conf = conf2fig(ret['real_vid_conf'][0, :, dataset_params['train_params']['cond_frames']+dataset_params['train_params']['pred_frames']//2], img_size=dataset_params['frame_shape'])
                 save_fake_conf = conf2fig(ret['fake_vid_conf'][0, :, dataset_params['train_params']['pred_frames']//2], img_size=dataset_params['frame_shape'])
-                new_im = Image.new('RGB', (msk_size * 5, msk_size * 2))
+                save_refine_img = sample_img(ret['refined_out_vid'][:, :, dataset_params['train_params']['pred_frames']//2, :, :])
+                new_im = Image.new('RGB', (msk_size * 6, msk_size * 2))
                 
                 # imgshot
                 # -------------------------------------------------------
-                # | src | real_out  | fake_out  | real_grid | real_conf |
+                # | src | real_out | real_warp | real_grid | real_conf | save_refine_img
                 # -------------------------------------------------------
-                # | tar | real_warp | fake_warp | fake_grid | fake_conf |
+                # | tar | fake_out | fake_warp | fake_grid | fake_conf |
                 # -------------------------------------------------------
                 
                 new_im.paste(Image.fromarray(save_src_img, 'RGB'), (0, 0))
                 new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, msk_size))
                 
                 new_im.paste(Image.fromarray(save_real_out_img, 'RGB'), (msk_size, 0))
-                new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size, msk_size))
+                new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size, msk_size))
                 
-                new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size * 2, 0))
+                new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size * 2, 0))
                 new_im.paste(Image.fromarray(save_fake_warp_img, 'RGB'), (msk_size * 2, msk_size))
                 
                 new_im.paste(Image.fromarray(save_real_grid, 'RGB'), (msk_size * 3, 0))
@@ -269,6 +268,8 @@ def train(
                 
                 new_im.paste(Image.fromarray(save_real_conf, 'L'), (msk_size * 4, 0))
                 new_im.paste(Image.fromarray(save_fake_conf, 'L'), (msk_size * 4, msk_size))
+                
+                new_im.paste(Image.fromarray(save_refine_img, 'RGB'), (msk_size * 5, 0))
                 
                 new_im_name = 'B' + format(train_params["batch_size"], "04d") + '_S' + format(actual_step, "06d") \
                               + '_' + format(real_names[0], "06d") + ".png"
@@ -295,22 +296,23 @@ def train(
                         grid_size=32, img_size=msk_size)
                     save_real_conf = conf2fig(ret['real_vid_conf'][0, :, nf], img_size=dataset_params['frame_shape'])
                     save_fake_conf = conf2fig(ret['fake_vid_conf'][0, :, nf - dataset_params['train_params']['cond_frames']], img_size=dataset_params['frame_shape'])
-                    new_im = Image.new('RGB', (msk_size * 5, msk_size * 2))
+                    save_refine_img = sample_img(ret['refined_out_vid'][:, :, nf - dataset_params['train_params']['cond_frames'], :, :])
+                    new_im = Image.new('RGB', (msk_size * 6, msk_size * 2))
                     
                     # videoshot
                     # -------------------------------------------------------
-                    # | src | real_out  | fake_out  | real_grid | real_conf |
+                    # | src | real_out  | real_warp | real_grid | real_conf | save_refine_img
                     # -------------------------------------------------------
-                    # | tar | real_warp | fake_warp | fake_grid | fake_conf |
+                    # | tar | fake_out  | fake_warp | fake_grid | fake_conf |
                     # -------------------------------------------------------
                     
                     new_im.paste(Image.fromarray(save_src_img, 'RGB'), (0, 0))
                     new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, msk_size))
                     
                     new_im.paste(Image.fromarray(save_real_out_img, 'RGB'), (msk_size, 0))
-                    new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size, msk_size))
+                    new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size, msk_size))
                     
-                    new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size * 2, 0))
+                    new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size * 2, 0))
                     new_im.paste(Image.fromarray(save_fake_warp_img, 'RGB'), (msk_size * 2, msk_size))
                     
                     new_im.paste(Image.fromarray(save_real_grid, 'RGB'), (msk_size * 3, 0))
@@ -318,6 +320,9 @@ def train(
                     
                     new_im.paste(Image.fromarray(save_real_conf, 'L'), (msk_size * 4, 0))
                     new_im.paste(Image.fromarray(save_fake_conf, 'L'), (msk_size * 4, msk_size))
+                    
+                    new_im.paste(Image.fromarray(save_refine_img, 'RGB'), (msk_size * 5, 0))
+                    
                     new_im_arr = np.array(new_im)
                     new_im_arr_list.append(new_im_arr)
                 new_vid_name = 'B' + format(train_params["batch_size"], "04d") + '_S' + format(actual_step, "06d") \
@@ -398,8 +403,8 @@ def train(
                 break
 
             cnt += 1
-
-        scheduler.step()
+            scheduler.step()
+            
         epoch_cnt += 1
         print("epoch %d, lr= %.7f" % (epoch_cnt, optimizer.param_groups[0]["lr"]))
 
@@ -458,7 +463,7 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         i_real_vids = real_vids[:,:,:cond_frames]
 
         for i_autoreg in range(NUM_AUTOREG):
-            i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_refined_out_vid'][:,:,cond_frames:].clone().detach().cpu()
+            i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_refined_out_vid'].clone().detach().cpu()
             # i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'][:,:,cond_frames:].clone().detach().cpu()
             
             print(f'[{i_autoreg}/{NUM_AUTOREG}] i_pred_video: {i_pred_video.shape}')

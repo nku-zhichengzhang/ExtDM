@@ -294,15 +294,9 @@ class FlowDiffusion(nn.Module):
             ret['sample_vid_conf'] = sample_vid_conf
             ret['sample_out_vid'] = sample_out_vid
             ret['sample_warped_vid'] = sample_warped_vid
-            
-            ret['sample_refined_out_vid'] = self.refine(cond = cond_frames, pred = sample_out_vid)
+            ret['sample_refined_out_vid'] = self.refine(cond = cond_frames, pred = sample_out_vid[:,:,self.cond_frame_num:])
         
         return ret
-
-    def print_learning_rate(self):
-        lr = self.optimizer_diff.param_groups[0]['lr']
-        assert lr > 0
-        print('lr= %.7f' % lr)
 
     def get_grid(self, b, nf, H, W, normalize=True):
         if normalize:

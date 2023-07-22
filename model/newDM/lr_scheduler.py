@@ -77,7 +77,6 @@ class LambdaWarmUpCosineScheduler2:
     def __call__(self, n, **kwargs):
         return self.schedule(n, **kwargs)
 
-
 class LambdaLinearScheduler(LambdaWarmUpCosineScheduler2):
 
     def schedule(self, n, **kwargs):

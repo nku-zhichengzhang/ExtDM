@@ -30,40 +30,35 @@ class RefineModule(nn.Module):
             assert cond is None, "cond must be None"
             video = pred
         
-        print(video.shape)
         video = self.s_conv(video)
-        print(video.shape)
         video = self.t_conv(video)
-        print(video.shape)
         video = self.adaptor(video)
-        print(video.shape)
         video = self.final_conv(video)
-        print(video.shape)
         return video
     
-cond = torch.zeros((8,3,10,64,64))
-pred = torch.zeros((8,3,20,64,64))
+# cond = torch.zeros((8,3,10,64,64))
+# pred = torch.zeros((8,3,20,64,64))
 
-refine = RefineModule(
-    cond_num=10, 
-    pred_num=20, 
-    channels=3, 
-    supervised=True,
-    middle_dim=8, 
-    adaptor_dim=64
-)
+# refine = RefineModule(
+#     cond_num=10, 
+#     pred_num=20, 
+#     channels=3, 
+#     supervised=True,
+#     middle_dim=8, 
+#     adaptor_dim=64
+# )
 
-refine2 = RefineModule(
-    cond_num=10, 
-    pred_num=20, 
-    channels=3, 
-    supervised=False,
-    middle_dim=8, 
-    adaptor_dim=64
-)
+# refine2 = RefineModule(
+#     cond_num=10, 
+#     pred_num=20, 
+#     channels=3, 
+#     supervised=False,
+#     middle_dim=8, 
+#     adaptor_dim=64
+# )
 
-res = refine(pred=pred, cond=cond)
-print(res.shape)
+# res = refine(pred=pred, cond=cond)
+# print(res.shape)
 
-res2 = refine2(pred=pred)
-print(res2.shape)
+# res2 = refine2(pred=pred)
+# print(res2.shape)

@@ -785,11 +785,11 @@ class Unet3D(nn.Module):
             x = temporal_attn(x, pos_bias=time_rel_pos_bias, focus_present_mask=focus_present_mask)
             x = upsample(x)
 
+        x = torch.cat((x, r), dim=1)
+        
         x = rearrange(x, "b c t h w -> b t c h w")
         x = self.out_conv(x)
         x = rearrange(x, "b t c h w -> b c t h w")
-        
-        x = torch.cat((x, r), dim=1)
         
         return torch.cat((self.final_conv(x), self.occlusion_map(x)), dim=1)
 
