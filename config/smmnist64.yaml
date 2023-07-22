@@ -68,7 +68,12 @@ flow_params:
   train_params:
     max_epochs: 100
     num_repeats: 10
-    epoch_milestones: [60, 90]
+    scheduler_param:
+      warm_up_steps: [10000]
+      f_start: [1.e-6]
+      f_max: [1.]
+      f_min: [1.]
+    # epoch_milestones: [60, 90]
     lr: 2.0e-4
     batch_size: 100
     valid_batch_size: 256

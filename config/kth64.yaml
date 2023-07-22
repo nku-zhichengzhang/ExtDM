@@ -97,7 +97,12 @@ diffusion_params:
   train_params:
     max_epochs: 3342 # 6681
     num_repeats: 1
-    epoch_milestones: [2000, 2600]
+    scheduler_param:
+      warm_up_steps: [10000]
+      f_start: [1.e-6]
+      f_max: [1.]
+      f_min: [1.]
+    # epoch_milestones: [2000, 2600]
     lr: 2.0e-4
     batch_size: 8 # 16
     valid_batch_size: 32 # 64
