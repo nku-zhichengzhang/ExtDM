@@ -67,17 +67,8 @@ def train(
     steps_per_epoch = math.ceil(train_params['num_repeats'] * len(train_dataset) / float(train_params['batch_size']))
     # 多少 step 保存一次模型
     save_ckpt_freq = train_params['save_ckpt_freq']
-    # 总共只保存 10 次模型，计算每次需要多少 step
-    # save_ckpt_freq = steps_per_epoch * (train_params['max_epochs'] // 10)
     print("save ckpt freq:", save_ckpt_freq)
 
-    # FIXME: 可以改用adamw试试
-    # optimizer = torch.optim.Adam(
-    #     model.diffusion.parameters(), 
-    #     lr=train_params['lr'], 
-    #     betas=(0.9, 0.99)
-    # )
-    
     optimizer = torch.optim.AdamW(
         model.diffusion.parameters(), 
         lr=train_params['lr'],
@@ -114,10 +105,10 @@ def train(
         print("NO checkpoint found!")
 
     # 两种策略
-    # (1) 按 epoch 减少
+    # (1) 按 epoch, 按倍数减少
     # scheduler = MultiStepLR(optimizer, train_params['epoch_milestones'], gamma=0.1, last_epoch=start_epoch - 1)
 
-    # (2) 按 step warmup 增加
+    # (2) 按 step, warmup 增加
     linear_scheduler = LambdaLinearScheduler(**train_params['scheduler_param'])
     scheduler = LambdaLR(optimizer, lr_lambda=linear_scheduler.schedule)
     
@@ -394,6 +385,7 @@ def train(
                 break
 
             cnt += 1
+            # 按 step 进行 warmup 策略
             scheduler.step()
             
         epoch_cnt += 1
