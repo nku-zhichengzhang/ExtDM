@@ -99,6 +99,7 @@ class FlowDiffusion(nn.Module):
         self.refine = RefineModule(
             cond_num=dataset_params['train_params']['cond_frames'], 
             pred_num=dataset_params['train_params']['pred_frames'],
+            supervised=True,
             middle_dim=64,
             channels=3,
             adaptor_dim=64
