@@ -3,7 +3,11 @@ import os.path
 import numpy as np
 import math
 from torch.utils.data import DataLoader
+
 from torch.optim.lr_scheduler import MultiStepLR
+
+from torch.optim.lr_scheduler import LambdaLR
+from utils.lr_scheduler import LambdaLinearScheduler
 
 from utils.misc import grid2fig, conf2fig
 from utils.meter import AverageMeter
@@ -109,8 +113,14 @@ def train(
     else:
         print("NO checkpoint found!")
 
-    scheduler = MultiStepLR(optimizer, train_params['epoch_milestones'], gamma=0.1, last_epoch=start_epoch - 1)
+    # 两种策略
+    # (1) 按 epoch 减少
+    # scheduler = MultiStepLR(optimizer, train_params['epoch_milestones'], gamma=0.1, last_epoch=start_epoch - 1)
 
+    # (2) 按 step warmup 增加
+    linear_scheduler = LambdaLinearScheduler(**train_params['scheduler_param'])
+    scheduler = LambdaLR(optimizer, lr_lambda=linear_scheduler.schedule)
+    
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=train_params['batch_size'],
@@ -145,7 +155,6 @@ def train(
     losses = AverageMeter()
     losses_rec = AverageMeter()
     losses_warp = AverageMeter()
-    losses_refined = AverageMeter()
 
     cnt = 0
     epoch_cnt = start_epoch
@@ -182,13 +191,11 @@ def train(
             loss_ = ret['loss'].mean()
             loss_rec = ret['rec_loss'].mean()
             loss_rec_warp = ret['rec_warp_loss'].mean()
-            loss_refined = ret['refined_loss'].mean()
 
             if model.module.only_use_flow:
                 loss_.backward()
             else:
-                (loss_ + loss_rec + loss_refined).backward()
-                # (loss_ + loss_rec + loss_rec_warp).backward()
+                (loss_ + loss_rec + loss_rec_warp).backward()
             optimizer.step()
 
             batch_time.update(timeit.default_timer() - iter_end)
@@ -198,14 +205,12 @@ def train(
             losses.update(loss_.item(), bs)
             losses_rec.update(loss_rec.item(), bs)
             losses_warp.update(loss_rec_warp.item(), bs)
-            losses_refined.update(loss_refined.item(), bs)
 
             if actual_step % train_params["print_freq"] == 0:
                 print('iter: [{0}]{1}/{2}\t'
                       'loss {loss.val:.7f} ({loss.avg:.7f})\t'
                       'loss_rec {loss_rec.val:.4f} ({loss_rec.avg:.4f})\t'
-                      'loss_warp {loss_warp.val:.4f} ({loss_warp.avg:.4f})\t'
-                      'loss_refined {loss_refined.val:.4f} ({loss_refined.avg:.4f})'
+                      'loss_warp {loss_warp.val:.4f} ({loss_warp.avg:.4f})'
                     .format(
                     cnt, actual_step, final_step,
                     batch_time=batch_time,
@@ -213,7 +218,6 @@ def train(
                     loss=losses,
                     loss_rec=losses_rec,
                     loss_warp=losses_warp,
-                    loss_refined=losses_refined,
                 ))
 
                 wandb.log({
@@ -221,7 +225,6 @@ def train(
                     "loss": losses.val, 
                     "loss_rec": losses_rec.val,
                     "loss_warp": losses_warp.val,
-                    "loss_refined": losses_refined.val,
                     "batch_time": batch_time.avg
                 })
 
@@ -391,8 +394,8 @@ def train(
                 break
 
             cnt += 1
-
-        scheduler.step()
+            scheduler.step()
+            
         epoch_cnt += 1
         print("epoch %d, lr= %.7f" % (epoch_cnt, optimizer.param_groups[0]["lr"]))
 
@@ -451,8 +454,7 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         i_real_vids = real_vids[:,:,:cond_frames]
 
         for i_autoreg in range(NUM_AUTOREG):
-            i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_refined_out_vid'][:,:,cond_frames:].clone().detach().cpu()
-            # i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'][:,:,cond_frames:].clone().detach().cpu()
+            i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'][:,:,cond_frames:].clone().detach().cpu()
             
             print(f'[{i_autoreg}/{NUM_AUTOREG}] i_pred_video: {i_pred_video.shape}')
 

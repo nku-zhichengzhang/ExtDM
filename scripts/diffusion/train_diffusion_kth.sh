@@ -1,19 +1,12 @@
 # sh ./scripts/diffusion/train_diffusion_kth.sh
 
 # 从头训练
-# python ./scripts/diffusion/run.py \
-#     --flowae_checkpoint ./logs_training/flow_pretrained/kth64/snapshots/RegionMM.pth \
-#     --config ./config/kth64.yaml \
-#     --log_dir ./logs_training/diffusion \
-#     --device_ids 0,1 \
-#     --postfix 0721_new1
-
-python ./scripts/diffusion/new_run.py \
+python ./scripts/diffusion/run.py \
     --flowae_checkpoint ./logs_training/flow_pretrained/kth64/snapshots/RegionMM.pth \
-    --config ./config/new_kth64.yaml \
+    --config ./config/kth64.yaml \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \
-    --postfix 0722_new1
+    --postfix 0722
 
 # 预训练
 # python ./scripts/diffusion/run.py \

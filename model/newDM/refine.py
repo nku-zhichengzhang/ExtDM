@@ -1,7 +1,6 @@
-from functools import partial
 import torch.nn as nn
 import torch
-from model.newDM.new_video_flow_diffusion import ResnetBlock, MotionAdaptor
+from model.newDM.new_video_flow_diffusion import MotionAdaptor
 
 class RefineModule(nn.Module):
     def __init__(self, cond_num, pred_num, supervised=True, channels=3, middle_dim=8, adaptor_dim=64):

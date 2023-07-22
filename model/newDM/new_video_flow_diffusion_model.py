@@ -5,7 +5,7 @@
 
 import os
 import random
-from model.newDM.refine import RefineModule
+# from model.newDM.refine import RefineModule
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -95,15 +95,15 @@ class FlowDiffusion(nn.Module):
             ddim_sampling_eta=ddim_sampling_eta,
         )
         
-        # 针对光流扭曲后的视频进行后处理，处理模糊、杂乱、不连贯等细节问题
-        self.refine = RefineModule(
-            cond_num=dataset_params['train_params']['cond_frames'], 
-            pred_num=dataset_params['train_params']['pred_frames'],
-            supervised=True,
-            middle_dim=64,
-            channels=3,
-            adaptor_dim=64
-        )
+        # # 针对光流扭曲后的视频进行后处理，处理模糊、杂乱、不连贯等细节问题
+        # self.refine = RefineModule(
+        #     cond_num=dataset_params['train_params']['cond_frames'], 
+        #     pred_num=dataset_params['train_params']['pred_frames'],
+        #     supervised=True,
+        #     middle_dim=64,
+        #     channels=3,
+        #     adaptor_dim=64
+        # )
 
         self.cond_frame_num = dataset_params['train_params']['cond_frames']
         self.pred_frame_num = dataset_params['train_params']['pred_frames']
@@ -143,6 +143,7 @@ class FlowDiffusion(nn.Module):
         real_conf_list = []
         real_out_img_list = []
         real_warped_img_list = []
+        
         with torch.no_grad():
             # make it random
             # random_idx = random.randint(0, self.cond_frame_num-1)
@@ -164,11 +165,13 @@ class FlowDiffusion(nn.Module):
                 real_conf_list.append(generated["occlusion_map"])
                 real_out_img_list.append(generated["prediction"])
                 real_warped_img_list.append(generated["deformed"])
+        
         if self.is_train:
             # cond_frames pred frames
             cond_frames = real_vid[:,:, : self.cond_frame_num]
             pred_frames = real_vid[:,:,self.cond_frame_num : self.cond_frame_num+self.pred_frame_num]
         del real_vid
+        
         torch.cuda.empty_cache()
 
         real_vid_grid = torch.stack(real_grid_list, dim=2)
@@ -189,9 +192,9 @@ class FlowDiffusion(nn.Module):
             else:
                 frames = torch.cat((real_vid_grid, real_vid_conf*2-1), dim=1)
 
-
             loss, pred = self.diffusion(frames[:,:,:self.cond_frame_num], frames[:,:,self.cond_frame_num:self.cond_frame_num+self.pred_frame_num])
             ret['loss'] = loss
+            
             with torch.no_grad():
                 fake_out_img_list = []
                 fake_warped_img_list = []
@@ -218,10 +221,10 @@ class FlowDiffusion(nn.Module):
                 ret['rec_loss'] = rec_loss
                 ret['rec_warp_loss'] = rec_warp_loss
                 
-                refined_frames = self.refine(cond = cond_frames, pred = fake_out_vid)
-                refined_loss = nn.MSELoss()(pred_frames, refined_frames)
-                ret['refined_out_vid'] = refined_frames
-                ret['refined_loss'] = refined_loss
+            # refined_frames = self.refine(cond = cond_frames, pred = fake_out_vid)
+            # refined_loss = nn.MSELoss()(pred_frames, refined_frames)
+            # ret['refined_out_vid'] = refined_frames
+            # ret['refined_loss'] = refined_loss
         
         return ret
 
@@ -294,7 +297,7 @@ class FlowDiffusion(nn.Module):
             ret['sample_vid_conf'] = sample_vid_conf
             ret['sample_out_vid'] = sample_out_vid
             ret['sample_warped_vid'] = sample_warped_vid
-            ret['sample_refined_out_vid'] = self.refine(cond = cond_frames, pred = sample_out_vid[:,:,self.cond_frame_num:])
+            # ret['sample_refined_out_vid'] = self.refine(cond = cond_frames, pred = sample_out_vid[:,:,self.cond_frame_num:])
         
         return ret
 
