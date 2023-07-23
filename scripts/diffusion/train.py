@@ -23,8 +23,8 @@ import imageio
 import torch.backends.cudnn as cudnn
 from data.video_dataset import VideoDataset
 
-# from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
-from model.newDM.new_video_flow_diffusion_model import FlowDiffusion
+from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
+# from model.newDM.new_video_flow_diffusion_model import FlowDiffusion
 
 def train(
         config, 
@@ -187,6 +187,7 @@ def train(
                 loss_.backward()
             else:
                 (loss_ + loss_rec + loss_rec_warp).backward()
+                
             optimizer.step()
 
             batch_time.update(timeit.default_timer() - iter_end)
@@ -213,6 +214,7 @@ def train(
 
                 wandb.log({
                     "actual_step": actual_step,
+                    "lr": optimizer.param_groups[0]["lr"],
                     "loss": losses.val, 
                     "loss_rec": losses_rec.val,
                     "loss_warp": losses_warp.val,
@@ -286,18 +288,18 @@ def train(
                     
                     # videoshot
                     # -------------------------------------------------------
-                    # | src | real_out  | fake_out  | real_grid | real_conf |
+                    # | src | real_out | real_warp | real_grid | real_conf |
                     # -------------------------------------------------------
-                    # | tar | real_warp | fake_warp | fake_grid | fake_conf |
+                    # | tar | fake_out | fake_warp | fake_grid | fake_conf |
                     # -------------------------------------------------------
                     
                     new_im.paste(Image.fromarray(save_src_img, 'RGB'), (0, 0))
                     new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, msk_size))
                     
                     new_im.paste(Image.fromarray(save_real_out_img, 'RGB'), (msk_size, 0))
-                    new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size, msk_size))
+                    new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size, msk_size))
                     
-                    new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size * 2, 0))
+                    new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size * 2, 0))
                     new_im.paste(Image.fromarray(save_fake_warp_img, 'RGB'), (msk_size * 2, msk_size))
                     
                     new_im.paste(Image.fromarray(save_real_grid, 'RGB'), (msk_size * 3, 0))

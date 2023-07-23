@@ -7,7 +7,7 @@ python ./scripts/diffusion/run.py \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \
     --random-seed 1234 \
-    --postfix not_onlyflow
+    --postfix 0723_onlyflow
 
 # 预训练
 # python ./scripts/diffusion/run.py \
