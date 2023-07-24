@@ -4,10 +4,10 @@ import numpy as np
 import math
 from torch.utils.data import DataLoader
 
-# from torch.optim.lr_scheduler import MultiStepLR
+from torch.optim.lr_scheduler import MultiStepLR
 
-from torch.optim.lr_scheduler import LambdaLR
-from utils.lr_scheduler import LambdaLinearScheduler
+# from torch.optim.lr_scheduler import LambdaLR
+# from utils.lr_scheduler import LambdaLinearScheduler
 
 from utils.misc import grid2fig, conf2fig
 from utils.meter import AverageMeter
@@ -106,11 +106,11 @@ def train(
 
     # 两种策略
     # (1) 按 epoch, 按倍数减少
-    # scheduler = MultiStepLR(optimizer, train_params['epoch_milestones'], gamma=0.1, last_epoch=start_epoch - 1)
+    scheduler = MultiStepLR(optimizer, last_epoch=start_step - 1, **train_params['scheduler_param'])
 
     # (2) 按 step, warmup 增加
-    linear_scheduler = LambdaLinearScheduler(**train_params['scheduler_param'])
-    scheduler = LambdaLR(optimizer, lr_lambda=linear_scheduler.schedule)
+    # linear_scheduler = LambdaLinearScheduler(**train_params['scheduler_param'])
+    # scheduler = LambdaLR(optimizer, lr_lambda=linear_scheduler.schedule)
     
     train_dataloader = DataLoader(
         train_dataset,

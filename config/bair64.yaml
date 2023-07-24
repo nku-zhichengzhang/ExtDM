@@ -25,7 +25,7 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 2
-    pred_frames: 5
+    pred_frames: 14
   valid_params:
     total_videos: 256
     type: test
@@ -98,19 +98,21 @@ diffusion_params:
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:
-    max_epochs: 148
+    max_epochs: 74 # 148
     num_repeats: 1
+    # scheduler_param:
+    #   warm_up_steps: [5000]
+    #   f_start: [1.e-6]
+    #   f_max: [1.]
+    #   f_min: [1.]
     scheduler_param:
-      warm_up_steps: [5000]
-      f_start: [1.e-6]
-      f_max: [1.]
-      f_min: [1.]
-    # epoch_milestones: [40,72] # [2000, 3600]
-    lr: 5.0e-5
-    batch_size: 32
-    valid_batch_size: 128
+      milestones: [10000, 20000, 50000, 100000]
+      gamma: 0.5
+    lr: 2.0e-4
+    batch_size: 16 # 32 - pred5
+    valid_batch_size: 64 # 128 - pred5
     dataloader_workers: 8
-    print_freq: 100 
+    print_freq: 100
     save_img_freq: 1000
     save_vid_freq: 1000
     update_ckpt_freq: 1000

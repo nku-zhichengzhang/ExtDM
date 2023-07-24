@@ -242,7 +242,7 @@ class Block_cond(nn.Module):
         return (normalized_feat * style_std.expand(size) + style_mean.expand(size)).permute(0,2,1,3,4).contiguous()
 
     def forward(self, x, guidance=None):
-        res = x
+        # res = x
         if x.shape[-2:]!=guidance.shape[-2:]:
             guidance = F.interpolate(guidance, size=x.shape[-3:], mode='trilinear')
         x = torch.cat([x, guidance], dim=1)
@@ -583,6 +583,7 @@ class Unet3D(nn.Module):
         assert is_odd(init_kernel_size)
 
         init_padding = init_kernel_size // 2
+        
         self.init_conv      = nn.Conv3d(channels, init_dim, 
                                    kernel_size=(1, init_kernel_size, init_kernel_size),
                                    padding=(0, init_padding, init_padding))
