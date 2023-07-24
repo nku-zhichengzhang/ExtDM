@@ -23,8 +23,8 @@ import imageio
 import torch.backends.cudnn as cudnn
 from data.video_dataset import VideoDataset
 
-from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
-# from model.newDM.new_video_flow_diffusion_model import FlowDiffusion
+# from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
+from model.newDM.new_video_flow_diffusion_model import FlowDiffusion
 
 def train(
         config, 
