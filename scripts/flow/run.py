@@ -88,6 +88,7 @@ if __name__ == "__main__":
 
     wandb.login()
     wandb.init(
+        entity="nku428",
         project="EDM_v1",
         config={
             "learning_rate": train_params['lr'],

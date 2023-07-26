@@ -8,8 +8,7 @@
 experiment_name: bair
 
 dataset_params:
-  # root_dir: /mnt/sda/hjy/bair/mcvd-pytorch/datasets/BAIR/BAIR_h5
-  root_dir: /mnt/rhdd/zzc/data/video_prediction/BAIR/BAIR_h5/
+  root_dir: /mnt/sda/hjy/bair/mcvd-pytorch/datasets/BAIR/BAIR_h5
   frame_shape: 64
   augmentation_params:
     flip_param:
@@ -69,7 +68,7 @@ flow_params:
   train_params:
     max_epochs: 100
     num_repeats: 100
-    epoch_milestones: [60, 90]
+    epoch_milestones: [60, 80]
     lr: 2.0e-4
     batch_size: 100
     valid_batch_size: 256
@@ -100,22 +99,16 @@ diffusion_params:
   train_params:
     max_epochs: 148
     num_repeats: 1
-    scheduler_param:
-      warm_up_steps: [10000]
-      f_start: [1.e-6]
-      f_max: [1.]
-      f_min: [1.]
-    # epoch_milestones: [40,72] # [2000, 3600]
+    epoch_milestones: [50000, 100000] # [2000, 3600]
     lr: 2.0e-4
     batch_size: 32
     valid_batch_size: 64
     dataloader_workers: 6
-    print_freq: 1 #00
-    save_img_freq: 10 #00
-    save_vid_freq: 10 #00
-    update_ckpt_freq: 10 #00
-    save_ckpt_freq: 50 #00
-    sample_vid_freq: 1000 # useless
+    print_freq: 100 
+    save_img_freq: 1000 
+    save_vid_freq: 1000 
+    update_ckpt_freq: 1000 
+    save_ckpt_freq: 5000 #00
 
 visualizer_params:
   kp_size: 2

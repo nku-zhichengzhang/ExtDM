@@ -5,16 +5,17 @@
 
 import os
 import random
-# from model.newDM.refine import RefineModule
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from model.LFAE.generator import Generator
 from model.LFAE.bg_motion_predictor import BGMotionPredictor
 from model.LFAE.region_predictor import RegionPredictor
-from model.newDM.new_video_flow_diffusion import Unet3D, GaussianDiffusion
 
-import yaml
+from model.BaseDM.DenoiseNet import Unet3D
+from model.BaseDM.Diffusion import GaussianDiffusion
+
 
 
 class FlowDiffusion(nn.Module):
@@ -129,6 +130,7 @@ class FlowDiffusion(nn.Module):
                 generated.update({'source_region_params': source_region_params,
                                   'driving_region_params': driving_region_params})
                 real_grid_list.append(generated["optical_flow"].permute(0, 3, 1, 2))
+                
                 # normalized occlusion map
                 real_conf_list.append(generated["occlusion_map"])
                 real_out_img_list.append(generated["prediction"])
@@ -199,9 +201,7 @@ class FlowDiffusion(nn.Module):
         real_conf_list = []
         real_out_img_list = []
         real_warped_img_list = []
-        
-        cond_frames = real_vid[:,:, : self.cond_frame_num]
-        
+                
         with torch.no_grad():
             ref_img = real_vid[:,:,self.cond_frame_num-1]
             # reference image = condition frames [t-1]
@@ -234,7 +234,6 @@ class FlowDiffusion(nn.Module):
 
 
         # if cond_scale = 1.0, not using unconditional model
-
         pred = self.diffusion.sample(x_cond, batch_size=1, cond_scale=cond_scale)
         if self.use_residual_flow:
             b, _, nf, h, w = pred[:, :2, :, :, :].size()

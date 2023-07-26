@@ -9,7 +9,6 @@ experiment_name: cityscapes128
 
 dataset_params:
   root_dir: /mnt/sda/hjy/cityscapes/cityscapes_processed/
-  # root_dir: /mnt/sda/hjy/cityscapes/Cityscapes128_h5
   frame_shape: 128
   augmentation_params:
     flip_param:

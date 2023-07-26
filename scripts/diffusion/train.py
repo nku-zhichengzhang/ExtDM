@@ -2,10 +2,11 @@ import torch
 import os.path
 import numpy as np
 import math
+import sys
+sys.path.append('/home/ubuntu11/zzc/code/videoprediction/EDM')
+
 from torch.utils.data import DataLoader
-
 from torch.optim.lr_scheduler import MultiStepLR
-
 from torch.optim.lr_scheduler import LambdaLR
 from utils.lr_scheduler import LambdaLinearScheduler
 
@@ -24,7 +25,8 @@ import torch.backends.cudnn as cudnn
 from data.video_dataset import VideoDataset
 
 # from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
-from model.newDM.new_video_flow_diffusion_model import FlowDiffusion
+# from model.newDM.new_video_flow_diffusion_model import FlowDiffusion
+from model.BaseDM.VideoFlowDiffusion import FlowDiffusion
 
 def train(
         config, 
@@ -106,11 +108,11 @@ def train(
 
     # 两种策略
     # (1) 按 epoch, 按倍数减少
-    # scheduler = MultiStepLR(optimizer, train_params['epoch_milestones'], gamma=0.1, last_epoch=start_epoch - 1)
+    scheduler = MultiStepLR(optimizer, train_params['epoch_milestones'], gamma=0.1, last_epoch=start_epoch - 1)
 
     # (2) 按 step, warmup 增加
-    linear_scheduler = LambdaLinearScheduler(**train_params['scheduler_param'])
-    scheduler = LambdaLR(optimizer, lr_lambda=linear_scheduler.schedule)
+    # linear_scheduler = LambdaLinearScheduler(**train_params['scheduler_param'])
+    # scheduler = LambdaLR(optimizer, lr_lambda=linear_scheduler.schedule)
     
     train_dataloader = DataLoader(
         train_dataset,
@@ -312,49 +314,6 @@ def train(
                 new_vid_file = os.path.join(config["vidshots"], new_vid_name)
                 imageio.mimsave(new_vid_file, new_im_arr_list)
 
-            # # sampling
-            # if actual_step % train_params['sample_vid_freq'] == 0:#  and cnt != 0
-            #     print("sampling video...")
-            #     model.module.set_sample_input(
-            #         cond_frame_num=dataset_params['train_params']['cond_frames'], 
-            #         tot_frame_num=dataset_params['train_params']['cond_frames'] + dataset_params['valid_params']['pred_frames']
-            #     )
-            #     ret = model.module.sample_one_video(cond_scale=1.0, real_vid=real_vids.cuda())
-            #     # num_frames = real_vids.size(2)
-            #     msk_size = ref_imgs.shape[-1]
-            #     new_im_arr_list = []
-            #     save_src_img = sample_img(ref_imgs)
-            #     for nf in range(dataset_params['train_params']['cond_frames'] + dataset_params['train_params']['pred_frames']):
-            #         save_tar_img = sample_img(real_vids[:, :, nf , :, :])
-            #         save_real_out_img = sample_img(ret['real_out_vid'][:, :, nf, :, :])
-            #         save_real_warp_img = sample_img(ret['real_warped_vid'][:, :, nf, :, :])
-            #         save_sample_out_img = sample_img(ret['sample_out_vid'][:, :, nf, :, :])
-            #         save_sample_warp_img = sample_img(ret['sample_warped_vid'][:, :, nf, :, :])
-            #         save_real_grid = grid2fig(
-            #             ret['real_vid_grid'][0, :, nf].permute((1, 2, 0)).data.cpu().numpy(),
-            #             grid_size=32, img_size=msk_size)
-            #         save_fake_grid = grid2fig(
-            #             ret['sample_vid_grid'][0, :, nf].permute((1, 2, 0)).data.cpu().numpy(),
-            #             grid_size=32, img_size=msk_size)
-            #         save_real_conf = conf2fig(ret['real_vid_conf'][0, :, nf], img_size=dataset_params['frame_shape'])
-            #         save_fake_conf = conf2fig(ret['sample_vid_conf'][0, :, nf], img_size=dataset_params['frame_shape'])
-            #         new_im = Image.new('RGB', (msk_size * 5, msk_size * 2))
-            #         new_im.paste(Image.fromarray(save_src_img, 'RGB'), (0, 0))
-            #         new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, msk_size))
-            #         new_im.paste(Image.fromarray(save_real_out_img, 'RGB'), (msk_size, 0))
-            #         new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size, msk_size))
-            #         new_im.paste(Image.fromarray(save_sample_out_img, 'RGB'), (msk_size * 2, 0))
-            #         new_im.paste(Image.fromarray(save_sample_warp_img, 'RGB'), (msk_size * 2, msk_size))
-            #         new_im.paste(Image.fromarray(save_real_grid, 'RGB'), (msk_size * 3, 0))
-            #         new_im.paste(Image.fromarray(save_fake_grid, 'RGB'), (msk_size * 3, msk_size))
-            #         new_im.paste(Image.fromarray(save_real_conf, 'L'), (msk_size * 4, 0))
-            #         new_im.paste(Image.fromarray(save_fake_conf, 'L'), (msk_size * 4, msk_size))
-            #         new_im_arr = np.array(new_im)
-            #         new_im_arr_list.append(new_im_arr)
-            #     new_vid_name = 'B' + format(train_params["batch_size"], "04d") + '_S' + format(actual_step, "06d") \
-            #                     + '_' + format(real_names[0], "06d") + ".gif"
-            #     new_vid_file = os.path.join(config["samples"], new_vid_name)
-            #     imageio.mimsave(new_vid_file, new_im_arr_list)
 
             # save model
             if actual_step % train_params['save_ckpt_freq'] == 0 and cnt != 0:
@@ -399,7 +358,6 @@ def train(
         },
         os.path.join(config["snapshots"], 'flowdiff_' + format(train_params["batch_size"], "04d") + '_S' + format(actual_step, "06d") + '.pth'))
 
-# def valid(validloader, model, epoch):
 
 def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
     
@@ -447,11 +405,8 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
 
         for i_autoreg in range(NUM_AUTOREG):
             i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'][:,:,cond_frames:].clone().detach().cpu()
-            
             print(f'[{i_autoreg}/{NUM_AUTOREG}] i_pred_video: {i_pred_video.shape}')
-
             pred_video.append(i_pred_video)
-
             i_real_vids = i_pred_video[:,:,-cond_frames:]
 
         pred_video = torch.cat(pred_video, dim=2)
@@ -491,10 +446,10 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
     psnr = calculate_psnr1(videos1, videos2)[0]
     lpips = calculate_lpips1(videos1, videos2, torch.device("cuda"))[0]
     
-    # print("[fvd    ]", fvd)
-    # print("[ssim   ]", ssim)
-    # print("[psnr   ]", psnr)
-    # print("[lpips  ]", lpips)
+    print("[fvd    ]", fvd)
+    print("[ssim   ]", ssim)
+    print("[psnr   ]", psnr)
+    print("[lpips  ]", lpips)
 
     return {
         'actual_step': actual_step,

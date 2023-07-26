@@ -8,7 +8,6 @@ import torch.backends.cudnn as cudnn
 import os
 import yaml
 from shutil import copy
-
 from train import train
 
 from utils.seed import setup_seed
@@ -95,6 +94,7 @@ if __name__ == '__main__':
 
     wandb.login()
     wandb.init(
+        entity="nku428",
         project="EDM_v1",
         config={
             "learning_rate": train_params['lr'],
