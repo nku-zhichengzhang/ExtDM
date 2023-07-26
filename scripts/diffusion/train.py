@@ -7,6 +7,7 @@ sys.path.append('/home/ubuntu11/zzc/code/videoprediction/EDM')
 
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
+
 from torch.optim.lr_scheduler import LambdaLR
 from utils.lr_scheduler import LambdaLinearScheduler
 
@@ -108,7 +109,7 @@ def train(
 
     # 两种策略
     # (1) 按 epoch, 按倍数减少
-    scheduler = MultiStepLR(optimizer, train_params['epoch_milestones'], gamma=0.1, last_epoch=start_epoch - 1)
+    scheduler = MultiStepLR(optimizer, last_epoch=start_step - 1, **train_params['scheduler_param'])
 
     # (2) 按 step, warmup 增加
     # linear_scheduler = LambdaLinearScheduler(**train_params['scheduler_param'])
@@ -189,6 +190,7 @@ def train(
                 loss_.backward()
             else:
                 (loss_ + loss_rec + loss_rec_warp).backward()
+                
             optimizer.step()
 
             batch_time.update(timeit.default_timer() - iter_end)
@@ -215,6 +217,7 @@ def train(
 
                 wandb.log({
                     "actual_step": actual_step,
+                    "lr": optimizer.param_groups[0]["lr"],
                     "loss": losses.val, 
                     "loss_rec": losses_rec.val,
                     "loss_warp": losses_warp.val,
@@ -230,27 +233,27 @@ def train(
                 save_fake_out_img = sample_img(ret['fake_out_vid'][:, :, dataset_params['train_params']['pred_frames']//2, :, :])
                 save_fake_warp_img = sample_img(ret['fake_warped_vid'][:, :, dataset_params['train_params']['pred_frames']//2, :, :])
                 save_real_grid = grid2fig(ret['real_vid_grid'][0, :, dataset_params['train_params']['cond_frames']+dataset_params['train_params']['pred_frames']//2].permute((1, 2, 0)).data.cpu().numpy(),
-                                          grid_size=32, img_size=msk_size)
+                                          grid_size=12, img_size=msk_size)
                 save_fake_grid = grid2fig(ret['fake_vid_grid'][0, :, dataset_params['train_params']['pred_frames']//2].permute((1, 2, 0)).data.cpu().numpy(),
-                                          grid_size=32, img_size=msk_size)
+                                          grid_size=12, img_size=msk_size)
                 save_real_conf = conf2fig(ret['real_vid_conf'][0, :, dataset_params['train_params']['cond_frames']+dataset_params['train_params']['pred_frames']//2], img_size=dataset_params['frame_shape'])
                 save_fake_conf = conf2fig(ret['fake_vid_conf'][0, :, dataset_params['train_params']['pred_frames']//2], img_size=dataset_params['frame_shape'])
                 new_im = Image.new('RGB', (msk_size * 5, msk_size * 2))
                 
                 # imgshot
                 # -------------------------------------------------------
-                # | src | real_out  | fake_out  | real_grid | real_conf |
+                # | src | real_out  | real_warp | real_grid | real_conf |
                 # -------------------------------------------------------
-                # | tar | real_warp | fake_warp | fake_grid | fake_conf |
+                # | tar | fake_out  | fake_warp | fake_grid | fake_conf |
                 # -------------------------------------------------------
                 
                 new_im.paste(Image.fromarray(save_src_img, 'RGB'), (0, 0))
                 new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, msk_size))
                 
                 new_im.paste(Image.fromarray(save_real_out_img, 'RGB'), (msk_size, 0))
-                new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size, msk_size))
+                new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size, msk_size))
                 
-                new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size * 2, 0))
+                new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size * 2, 0))
                 new_im.paste(Image.fromarray(save_fake_warp_img, 'RGB'), (msk_size * 2, msk_size))
                 
                 new_im.paste(Image.fromarray(save_real_grid, 'RGB'), (msk_size * 3, 0))
@@ -278,28 +281,28 @@ def train(
                     save_fake_warp_img = sample_img(ret['fake_warped_vid'][:, :, nf - dataset_params['train_params']['cond_frames'], :, :])
                     save_real_grid = grid2fig(
                         ret['real_vid_grid'][0, :, nf].permute((1, 2, 0)).data.cpu().numpy(),
-                        grid_size=32, img_size=msk_size)
+                        grid_size=12, img_size=msk_size)
                     save_fake_grid = grid2fig(
                         ret['fake_vid_grid'][0, :, nf - dataset_params['train_params']['cond_frames']].permute((1, 2, 0)).data.cpu().numpy(),
-                        grid_size=32, img_size=msk_size)
+                        grid_size=12, img_size=msk_size)
                     save_real_conf = conf2fig(ret['real_vid_conf'][0, :, nf], img_size=dataset_params['frame_shape'])
                     save_fake_conf = conf2fig(ret['fake_vid_conf'][0, :, nf - dataset_params['train_params']['cond_frames']], img_size=dataset_params['frame_shape'])
                     new_im = Image.new('RGB', (msk_size * 5, msk_size * 2))
                     
                     # videoshot
                     # -------------------------------------------------------
-                    # | src | real_out  | fake_out  | real_grid | real_conf |
+                    # | src | real_out | real_warp | real_grid | real_conf |
                     # -------------------------------------------------------
-                    # | tar | real_warp | fake_warp | fake_grid | fake_conf |
+                    # | tar | fake_out | fake_warp | fake_grid | fake_conf |
                     # -------------------------------------------------------
                     
                     new_im.paste(Image.fromarray(save_src_img, 'RGB'), (0, 0))
                     new_im.paste(Image.fromarray(save_tar_img, 'RGB'), (0, msk_size))
                     
                     new_im.paste(Image.fromarray(save_real_out_img, 'RGB'), (msk_size, 0))
-                    new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size, msk_size))
+                    new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size, msk_size))
                     
-                    new_im.paste(Image.fromarray(save_fake_out_img, 'RGB'), (msk_size * 2, 0))
+                    new_im.paste(Image.fromarray(save_real_warp_img, 'RGB'), (msk_size * 2, 0))
                     new_im.paste(Image.fromarray(save_fake_warp_img, 'RGB'), (msk_size * 2, msk_size))
                     
                     new_im.paste(Image.fromarray(save_real_grid, 'RGB'), (msk_size * 3, 0))

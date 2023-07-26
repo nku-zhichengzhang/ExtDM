@@ -155,24 +155,41 @@ if __name__ == "__main__":
     from metrics.calculate_ssim import calculate_ssim,calculate_ssim1
     from metrics.calculate_lpips import calculate_lpips,calculate_lpips1
     
-    fvd = calculate_fvd1(origin_videos, result_videos, torch.device("cuda"), mini_bs=2)
-    videos1 = origin_videos[:, cond_frames:cond_frames + pred_frames]
-    videos2 = result_videos[:, cond_frames:cond_frames + pred_frames]
-    ssim = calculate_ssim1(videos1, videos2)[0]
-    psnr = calculate_psnr1(videos1, videos2)[0]
-    lpips = calculate_lpips1(videos1, videos2, torch.device("cuda"))[0]
+    # fvd = calculate_fvd1(origin_videos, result_videos, torch.device("cuda"), mini_bs=2)
+    # videos1 = origin_videos[:, cond_frames:cond_frames + pred_frames]
+    # videos2 = result_videos[:, cond_frames:cond_frames + pred_frames]
+    # ssim = calculate_ssim1(videos1, videos2)[0]
+    # psnr = calculate_psnr1(videos1, videos2)[0]
+    # lpips = calculate_lpips1(videos1, videos2, torch.device("cuda"))[0]
     
-    print("[fvd    ]", fvd)
-    print("[ssim   ]", ssim)
-    print("[psnr   ]", psnr)
-    print("[lpips  ]", lpips)
+    # print("[fvd    ]", fvd)
+    # print("[ssim   ]", ssim)
+    # print("[psnr   ]", psnr)
+    # print("[lpips  ]", lpips)
     
-    res_dict = {
-        "fvd": fvd,
-        "ssim": ssim,
-        "psnr": psnr,
-        "lpips": lpips
-    }
+    # res_dict = {
+    #     "fvd": fvd,
+    #     "ssim": ssim,
+    #     "psnr": psnr,
+    #     "lpips": lpips
+    # }
+    
+    videos1 = origin_videos
+    videos2 = result_videos
+    
+    CALCULATE_PER_FRAME = 1
+    CALCULATE_FINAL = False
+    
+    import json
+    res_dict = {}
+    res_dict['fvd']   = calculate_fvd  (videos1, videos2, CALCULATE_PER_FRAME, CALCULATE_FINAL, torch.device("cuda"))
+    
+    videos1 = origin_videos[:, cond_frames:cond_frames + total_pred_frames]
+    videos2 = result_videos[:, cond_frames:cond_frames + total_pred_frames]
+    
+    res_dict['ssim']  = calculate_ssim (videos1, videos2, CALCULATE_PER_FRAME, CALCULATE_FINAL)
+    res_dict['psnr']  = calculate_psnr (videos1, videos2, CALCULATE_PER_FRAME, CALCULATE_FINAL)
+    res_dict['lpips'] = calculate_lpips(videos1, videos2, CALCULATE_PER_FRAME, CALCULATE_FINAL, torch.device("cuda"))
     
     with open(json_path, "w") as f:
         json.dump(res_dict, f)

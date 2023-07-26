@@ -2,6 +2,15 @@
 FLOWCKPT=/mnt/sda/hjy/flow_pretrained
 
 # 从头训练
+# python ./scripts/diffusion/run.py \
+#     --flowae_checkpoint ./logs_training/flow_pretrained/bair64/snapshots/RegionMM.pth \
+#     --config ./config/bair64.yaml \
+#     --log_dir ./logs_training/diffusion \
+#     --device_ids 0,1 \
+#     --random-seed 1234 \
+#     --postfix 0725_cond5pred14_notonlyflow_lr2e-4_MultiStepLR
+
+# 从头训练
 python ./scripts/diffusion/run.py \
     --flowae_checkpoint $FLOWCKPT/bair64/snapshots/RegionMM.pth \
     --config ./config/bair64.yaml \

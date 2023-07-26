@@ -132,6 +132,7 @@ class FlowDiffusion(nn.Module):
         real_conf_list = []
         real_out_img_list = []
         real_warped_img_list = []
+        
         with torch.no_grad():
             # make it random
             # random_idx = random.randint(0, self.cond_frame_num-1)
@@ -156,7 +157,7 @@ class FlowDiffusion(nn.Module):
         
         if self.is_train:
             # pred frames
-            pred_frames = real_vid[:,:,self.cond_frame_num:self.cond_frame_num+self.pred_frame_num]
+            pred_frames = real_vid[:,:,self.cond_frame_num : self.cond_frame_num+self.pred_frame_num]
         del real_vid
         
         torch.cuda.empty_cache()

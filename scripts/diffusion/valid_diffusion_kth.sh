@@ -31,4 +31,3 @@ python ./scripts/diffusion/valid.py \
 #     --flowae_checkpoint /mnt/sda/hjy/flow_pretrained/kth64/snapshots/RegionMM.pth \
 #     --log_dir ./logs_validation/diffusion/kth64_test_with_rf \
 #     --device_ids "0"
-    
