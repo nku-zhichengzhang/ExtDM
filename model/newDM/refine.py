@@ -34,7 +34,7 @@ class RefineModule(nn.Module):
         video = self.adaptor(video)
         video = self.final_conv(video)
         return video
-    
+
 # cond = torch.zeros((8,3,10,64,64))
 # pred = torch.zeros((8,3,20,64,64))
 

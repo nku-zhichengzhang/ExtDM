@@ -13,3 +13,4 @@ do
         --device_ids "0"
     seed=$((seed + 1000))
 done
+
