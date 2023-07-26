@@ -106,7 +106,7 @@ diffusion_params:
     #   f_max: [1.]
     #   f_min: [1.]
     scheduler_param:
-      milestones: [10000, 20000, 50000, 100000]
+      milestones: [50000, 100000, 150000]
       gamma: 0.5
     lr: 2.0e-4
     batch_size: 16 # 32 - pred5
