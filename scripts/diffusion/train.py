@@ -75,9 +75,7 @@ def train(
     optimizer = torch.optim.AdamW(
         model.diffusion.parameters(), 
         lr=train_params['lr'],
-        betas=(0.9, 0.999),
         eps=1.0e-08,
-        weight_decay=0.0,
         amsgrad=False
     )
 
