@@ -584,13 +584,11 @@ class Unet3D(nn.Module):
 
         init_padding = init_kernel_size // 2
         
-        self.init_conv      = nn.Conv3d(channels, init_dim, 
-                                   kernel_size=(1, init_kernel_size, init_kernel_size),
-                                   padding=(0, init_padding, init_padding))
-        self.init_cond_conv = nn.Conv3d(cond_channels, motion_dim, 
-                                   kernel_size=(1, init_kernel_size, init_kernel_size),
-                                   padding=(0, init_padding, init_padding))
-        self.init_temporal_attn      = Residual(PreNorm(init_dim,   temporal_attn(init_dim)))
+        self.init_conv = nn.Conv3d(channels, init_dim, kernel_size=(1, init_kernel_size, init_kernel_size), padding=(0, init_padding, init_padding))
+        
+        self.init_cond_conv = nn.Conv3d(cond_channels, motion_dim, kernel_size=(1, init_kernel_size, init_kernel_size), padding=(0, init_padding, init_padding))
+        
+        self.init_temporal_attn = Residual(PreNorm(init_dim, temporal_attn(init_dim)))
         self.init_cond_temporal_attn = Residual(PreNorm(motion_dim, temporal_attn(motion_dim)))
 
         # dimensions
@@ -738,7 +736,7 @@ class Unet3D(nn.Module):
         time_rel_pos_bias      = self.time_rel_pos_bias(x.shape[2],           device=x.device)
         time_cond_rel_pos_bias = self.time_rel_pos_bias(cond_frames.shape[2], device=x.device)
 
-        x = self.init_conv(x)        
+        x = self.init_conv(x)
         r = x.clone()
         x = self.init_temporal_attn(x, pos_bias=time_rel_pos_bias)
         

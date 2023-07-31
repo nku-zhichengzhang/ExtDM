@@ -12,9 +12,7 @@ from model.LFAE.generator import Generator
 from model.LFAE.bg_motion_predictor import BGMotionPredictor
 from model.LFAE.region_predictor import RegionPredictor
 from model.DM.video_flow_diffusion_pred_condframe_temp import Unet3D, GaussianDiffusion
-# from model.DM.video_flow_diffusion_pred_condframe import Unet3D, GaussianDiffusion
-# from model.DM.video_flow_diffusion_pred import Unet3D, GaussianDiffusion
-# from model.DM.video_flow_diffusion import Unet3D, GaussianDiffusion
+
 import yaml
 
 

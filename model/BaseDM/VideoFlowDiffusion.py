@@ -13,6 +13,7 @@ from model.LFAE.generator import Generator
 from model.LFAE.bg_motion_predictor import BGMotionPredictor
 from model.LFAE.region_predictor import RegionPredictor
 
+# from model.BaseDM.DenoiseNet import Unet3D
 from model.BaseDM.DenoiseNet import Unet3D
 from model.BaseDM.Diffusion import GaussianDiffusion
 
@@ -29,6 +30,7 @@ class FlowDiffusion(nn.Module):
             learn_null_cond=False,
             use_deconv=True,
             padding_mode="zeros",
+            withFea=False,
         ):
         super(FlowDiffusion, self).__init__()
         
@@ -38,7 +40,7 @@ class FlowDiffusion(nn.Module):
 
         self.use_residual_flow = diffusion_params['use_residual_flow']
         self.only_use_flow = diffusion_params['only_use_flow']
-
+        self.withFea = withFea
         if pretrained_pth != "":
             checkpoint = torch.load(pretrained_pth)
 
@@ -138,7 +140,6 @@ class FlowDiffusion(nn.Module):
         
         if self.is_train:
             # cond_frames pred frames
-            cond_frames = real_vid[:,:, : self.cond_frame_num]
             pred_frames = real_vid[:,:,self.cond_frame_num : self.cond_frame_num+self.pred_frame_num]
             
         del real_vid
@@ -148,7 +149,11 @@ class FlowDiffusion(nn.Module):
         real_vid_conf = torch.stack(real_conf_list, dim=2)
         real_out_vid = torch.stack(real_out_img_list, dim=2)
         real_warped_vid = torch.stack(real_warped_img_list, dim=2)
-        
+        if self.withFea:
+            ref_img_fea = F.interpolate(generated["bottle_neck_feat"].detach(), size=real_vid_conf.shape[-2:], mode='bilinear')
+        else:
+            ref_img_fea = None  
+            
         # reference images are the same for different time steps, just pick the final one
         ret['real_vid_grid'] = real_vid_grid
         ret['real_vid_conf'] = real_vid_conf
@@ -163,7 +168,7 @@ class FlowDiffusion(nn.Module):
             else:
                 frames = torch.cat((real_vid_grid, real_vid_conf*2-1), dim=1)
 
-            loss, pred = self.diffusion(frames[:,:,:self.cond_frame_num], frames[:,:,self.cond_frame_num:self.cond_frame_num+self.pred_frame_num])
+            loss, pred = self.diffusion(frames[:,:,:self.cond_frame_num], frames[:,:,self.cond_frame_num:self.cond_frame_num+self.pred_frame_num], cond_fea = ref_img_fea)
             ret['loss'] = loss
             
             with torch.no_grad():
@@ -226,6 +231,10 @@ class FlowDiffusion(nn.Module):
             real_vid_conf = torch.stack(real_conf_list, dim=2)
             real_out_vid = torch.stack(real_out_img_list, dim=2)
             real_warped_vid = torch.stack(real_warped_img_list, dim=2)
+            if self.withFea:
+                ref_img_fea = F.interpolate(generated["bottle_neck_feat"].detach(), size=real_vid_conf.shape[-2:], mode='bilinear')
+            else:
+                ref_img_fea = None
             ret['real_vid_grid'] = real_vid_grid
             ret['real_vid_conf'] = real_vid_conf
             ret['real_out_vid'] = real_out_vid
@@ -234,7 +243,7 @@ class FlowDiffusion(nn.Module):
 
 
         # if cond_scale = 1.0, not using unconditional model
-        pred = self.diffusion.sample(x_cond, batch_size=1, cond_scale=cond_scale)
+        pred = self.diffusion.sample(x_cond, cond_fea=ref_img_fea, batch_size=1, cond_scale=cond_scale)
         if self.use_residual_flow:
             b, _, nf, h, w = pred[:, :2, :, :, :].size()
             identity_grid = self.get_grid(b, 1, h, w, normalize=True).cuda()

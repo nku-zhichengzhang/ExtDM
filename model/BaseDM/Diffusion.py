@@ -139,9 +139,9 @@ class GaussianDiffusion(nn.Module):
         posterior_log_variance_clipped = extract(self.posterior_log_variance_clipped, t, x_t.shape)
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
-    def p_mean_variance(self, x_cond, x, t, clip_denoised: bool, cond=None, cond_scale=7.5):
+    def p_mean_variance(self, x_cond, x, cond_fea, t, clip_denoised: bool, cond=None, cond_scale=7.5):
         # x_c = torch.cat([x_cond,x],dim=2)
-        epsilon_noise = self.denoise_fn.forward_with_cond_scale(x, t, cond_frames=x_cond, cond=cond, cond_scale=cond_scale)
+        epsilon_noise = self.denoise_fn.forward_with_cond_scale(x, t, cond_frames=x_cond, cond=cond, cond_fea=cond_fea, cond_scale=cond_scale)
         x_recon = self.predict_start_from_noise(x, t=t, noise=epsilon_noise)
 
         if clip_denoised:
@@ -163,9 +163,9 @@ class GaussianDiffusion(nn.Module):
         return model_mean, posterior_variance, posterior_log_variance
 
     @torch.inference_mode()
-    def p_sample(self, x_cond, x, t, cond=None, cond_scale=1., clip_denoised=True):
+    def p_sample(self, x_cond, x, cond_fea, t, cond=None, cond_scale=1., clip_denoised=True):
         b, *_, device = *x.shape, x.device
-        model_mean, _, model_log_variance = self.p_mean_variance(x_cond=x_cond, x=x, t=t,
+        model_mean, _, model_log_variance = self.p_mean_variance(x_cond=x_cond, x=x, cond_fea=cond_fea, t=t,
                                                                  clip_denoised=clip_denoised, cond=cond,
                                                                  cond_scale=cond_scale)
         noise = torch.randn_like(x)
@@ -174,20 +174,20 @@ class GaussianDiffusion(nn.Module):
         return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise
 
     @torch.inference_mode()
-    def p_sample_loop(self, x_cond, shape, cond=None, cond_scale=1.):
+    def p_sample_loop(self, x_cond, shape, cond_fea, cond=None, cond_scale=1.):
         device = self.betas.device
 
         b = shape[0]
         img = torch.randn(shape, device=device)
         for i in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
-            img = self.p_sample(x_cond, img, torch.full((b,), i, device=device, dtype=torch.long), cond=cond,
+            img = self.p_sample(x_cond, img, torch.full((b,), i, device=device, dtype=torch.long), cond_fea=cond_fea, cond=cond,
                                 cond_scale=cond_scale)
 
         return img
         # return unnormalize_img(img)
 
     @torch.inference_mode()
-    def sample(self, x_cond, cond=None, cond_scale=1., batch_size=16):
+    def sample(self, x_cond, cond_fea, cond=None, cond_scale=1., batch_size=16):
         device = next(self.denoise_fn.parameters()).device
 
         if is_list_str(cond):
@@ -195,15 +195,15 @@ class GaussianDiffusion(nn.Module):
 
         batch_size = x_cond.shape[0] if exists(x_cond) else batch_size
         image_size = self.image_size
-        channels = self.channels
+        channels = 3
         num_frames = self.num_frames - x_cond.size(2)
         sample_fn = self.p_sample_loop if not self.is_ddim_sampling else self.ddim_sample
-        return sample_fn(x_cond, (batch_size, channels, num_frames, x_cond.shape[3], x_cond.shape[4]), cond=cond,
+        return sample_fn(x_cond, (batch_size, channels, num_frames, x_cond.shape[3], x_cond.shape[4]), cond_fea=cond_fea, cond=cond,
                          cond_scale=cond_scale)
 
     # add by nhm
     @torch.no_grad()
-    def ddim_sample(self, x_cond, shape, cond=None, cond_scale=1., clip_denoised=True):
+    def ddim_sample(self, x_cond, shape, cond_fea, cond=None, cond_scale=1., clip_denoised=True):
 
         batch, device, total_timesteps, sampling_timesteps, eta = \
             shape[0], self.betas.device, self.num_timesteps, self.sampling_timesteps, self.ddim_sampling_eta
@@ -222,6 +222,7 @@ class GaussianDiffusion(nn.Module):
             pred_noise = self.denoise_fn.forward_with_cond_scale(
                 img,
                 time_cond,
+                cond_fea=cond_fea,
                 cond_frames=x_cond,
                 cond=cond,
                 cond_scale=cond_scale)
@@ -278,17 +279,11 @@ class GaussianDiffusion(nn.Module):
                 extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
         )
 
-    def p_losses(self, x_start_cond, x_start_pred, t, cond=None, noise=None, clip_denoised=True, **kwargs):
-        b, c, f, h, w, device = *x_start_pred.shape, x_start_pred.device
+    def p_losses(self, x_start_cond, x_start_pred, cond_fea, t, cond=None, noise=None, clip_denoised=True, **kwargs):
         noise = default(noise, lambda: torch.randn_like(x_start_pred))
-
         x_noisy = self.q_sample(x_start=x_start_pred, t=t, noise=noise)
 
-        # if is_list_str(cond):
-        #     none_cond_mask = [ii == "None" for ii in cond]
-        #     cond = bert_embed(tokenize(cond), return_cls_repr=self.text_use_bert_cls)
-        #     cond = cond.to(device)
-        pred_noise = self.denoise_fn.forward(x_noisy, t, cond_frames=x_start_cond, cond=cond, null_cond_prob=self.null_cond_prob, none_cond_mask=None, **kwargs)
+        pred_noise = self.denoise_fn.forward(x_noisy, t, cond_fea=cond_fea, cond_frames=x_start_cond, cond=cond, null_cond_prob=self.null_cond_prob, none_cond_mask=None, **kwargs)
 
         if self.loss_type == 'l1':
             loss = F.l1_loss(noise, pred_noise)
@@ -315,10 +310,10 @@ class GaussianDiffusion(nn.Module):
             pred_x0 = pred_x0.clamp(-s, s) / s
         return loss, pred_x0
 
-    def forward(self, x_cond, x_pred, *args, **kwargs):
+    def forward(self, x_cond, x_pred, cond_fea, *args, **kwargs):
         b, device, img_size, = x_cond.shape[0], x_cond.device, self.image_size
         # check_shape(x, 'b c f h w', c=self.channels, f=self.num_frames, h=img_size, w=img_size)
         t = torch.randint(0, self.num_timesteps, (b,), device=device).long()
         # x = normalize_img(x)
-        return self.p_losses(x_cond, x_pred, t, cond=None, *args, **kwargs)
+        return self.p_losses(x_cond, x_pred, cond_fea, t, cond=None, *args, **kwargs)
 
