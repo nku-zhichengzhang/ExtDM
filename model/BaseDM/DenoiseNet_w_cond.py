@@ -594,7 +594,7 @@ class Unet3D(nn.Module):
         # block type
         block_klass = partial(ResnetBlock, groups=resnet_groups)
         block_klass_motion_cond = partial(ResnetBlock_w_Motion, groups=resnet_groups, time_emb_dim=cond_dim)
-        
+
         self.motion_enc.append(nn.ModuleList([
             block_klass(motion_dim, motion_dim),
             block_klass(motion_dim, motion_dim),
@@ -602,11 +602,10 @@ class Unet3D(nn.Module):
             Residual(PreNorm(motion_dim, temporal_attn(motion_dim))),
             MotionAdaptor(motion_dim*self.tc, 256, motion_dim*self.tp)
         ]))
-        
+
         # modules for all layers
         for ind, (dim_in, dim_out) in enumerate(in_out):
             is_last = ind >= (num_resolutions - 1)
-            
             self.downs.append(nn.ModuleList([
                 block_klass_motion_cond(dim_in, dim_out, motion_dim=motion_dim),
                 block_klass_motion_cond(dim_out, dim_out, motion_dim=motion_dim),
@@ -682,7 +681,7 @@ class Unet3D(nn.Module):
         time_rel_pos_bias   = self.time_rel_pos_bias(tp, device=x.device)
         time_cond_rel_pos_bias = self.time_rel_pos_bias(tc, device=x.device)
 
-        x = self.init_conv(x)        
+        x = self.init_conv(x)
         r = x.clone()
         x = self.init_temporal_attn(x, pos_bias=time_rel_pos_bias)
         
