@@ -643,14 +643,6 @@ class Unet3D(nn.Module):
             nn.Conv3d(dim, out_grid_dim, 1)
         )
 
-        # added by nhm
-        self.use_final_activation = use_final_activation
-        
-        if self.use_final_activation:
-            self.final_activation = nn.Tanh()
-        else:
-            self.final_activation = nn.Identity()
-
         # added by nhm for predicting occlusion mask
         self.occlusion_map = nn.Sequential(
             block_klass(dim * 2, dim),
@@ -680,7 +672,10 @@ class Unet3D(nn.Module):
         # b c t h w
         # x = torch.cat([x, cond_frames], dim=2)
         if not cond_fea is None:
+            # print(cond_fea.shape)
+            # print(x.shape)
             x = torch.cat([x, cond_fea.unsqueeze(2).repeat(1,1,x.shape[2],1,1)], dim=1)
+            # print(x.shape)
         
         focus_present_mask  = default(focus_present_mask, lambda: prob_mask_like((batch,), prob_focus_present, device=device))
 
@@ -738,6 +733,6 @@ class Unet3D(nn.Module):
             x = upsample(x)
 
         x = torch.cat((x, r), dim=1)
-        _, x_fin = self.final_conv(x)
-        _, x_occ = self.occlusion_map(x)
+        x_fin = self.final_conv(x)
+        x_occ = self.occlusion_map(x)
         return torch.cat((x_fin, x_occ), dim=1)
