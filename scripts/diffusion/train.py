@@ -3,7 +3,7 @@ import os.path
 import numpy as np
 import math
 import sys
-sys.path.append('/home/ubuntu11/zzc/code/videoprediction/EDM')
+# sys.path.append('/home/ubuntu11/zzc/code/videoprediction/EDM')
 
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
@@ -25,9 +25,9 @@ import imageio
 import torch.backends.cudnn as cudnn
 from data.video_dataset import VideoDataset
 
-# from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
+from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
 # from model.newDM.new_video_flow_diffusion_model import FlowDiffusion
-from model.BaseDM.VideoFlowDiffusion import FlowDiffusion
+# from model.BaseDM.VideoFlowDiffusion import FlowDiffusion
 
 def train(
         config, 
@@ -75,7 +75,9 @@ def train(
     optimizer = torch.optim.AdamW(
         model.diffusion.parameters(), 
         lr=train_params['lr'],
+        betas=(0.9, 0.999),
         eps=1.0e-08,
+        weight_decay=0.0,
         amsgrad=False
     )
 
@@ -271,7 +273,7 @@ def train(
                 msk_size = ref_imgs.shape[-1]
                 new_im_arr_list = []
                 save_src_img = sample_img(ref_imgs)
-                for nf in range(dataset_params['train_params']['cond_frames'] + dataset_params['train_params']['pred_frames']):
+                for nf in range(dataset_params['train_params']['cond_frames'], dataset_params['train_params']['cond_frames'] + dataset_params['train_params']['pred_frames']):
                     save_tar_img = sample_img(real_vids[:, :, nf, :, :])
                     save_real_out_img = sample_img(ret['real_out_vid'][:, :, nf, :, :])
                     save_real_warp_img = sample_img(ret['real_warped_vid'][:, :, nf, :, :])
@@ -403,11 +405,11 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         pred_video = []
 
         i_real_vids = real_vids[:,:,:cond_frames]
-
+        
         for i_autoreg in range(NUM_AUTOREG):
-            i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'][:,:,cond_frames:].clone().detach().cpu()
-            print(f'[{i_autoreg}/{NUM_AUTOREG}] i_pred_video: {i_pred_video.shape}')
-            pred_video.append(i_pred_video)
+            i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'].clone().detach().cpu()
+            print(f'[{i_autoreg}/{NUM_AUTOREG}] i_pred_video: {i_pred_video[:,:,-pred_frames:].shape}')
+            pred_video.append(i_pred_video[:,:,-pred_frames:])
             i_real_vids = i_pred_video[:,:,-cond_frames:]
 
         pred_video = torch.cat(pred_video, dim=2)

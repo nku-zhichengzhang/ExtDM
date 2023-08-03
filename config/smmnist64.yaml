@@ -8,7 +8,8 @@
 experiment_name: smmnist64
 
 dataset_params:
-  root_dir: /mnt/sda/hjy/SMMNIST/SMMNIST_h5
+#   root_dir: /mnt/sda/hjy/SMMNIST/SMMNIST_h5 # u11
+  root_dir: /mnt/sda/hjy/smmnist/smmnist_h5 #u16
   frame_shape: 64
   augmentation_params:
     flip_param:
@@ -24,7 +25,7 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 10
-    pred_frames: 10
+    pred_frames: 5
   valid_params:
     total_videos: 256
     type: test
@@ -68,12 +69,7 @@ flow_params:
   train_params:
     max_epochs: 100
     num_repeats: 10
-    scheduler_param:
-      warm_up_steps: [10000]
-      f_start: [1.e-6]
-      f_max: [1.]
-      f_min: [1.]
-    # epoch_milestones: [60, 90]
+    epoch_milestones: [60, 90]
     lr: 2.0e-4
     batch_size: 100
     valid_batch_size: 256
@@ -91,22 +87,28 @@ flow_params:
       perceptual: [10, 10, 10, 10, 10]
       equivariance_shift: 10
       equivariance_affine: 10
-
 diffusion_params:
   model_params:
-    null_cond_prob: 0.1
+    null_cond_prob: 0.0
     use_residual_flow: False
-    only_use_flow: True
+    only_use_flow: False
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:
     max_epochs: 54
     num_repeats: 1
-    epoch_milestones: [32, 40]
+    # scheduler_param:
+    #   warm_up_steps: [5000]
+    #   f_start: [1.e-6]
+    #   f_max: [1.]
+    #   f_min: [1.]
+    scheduler_param:
+      milestones: [50000, 100000, 150000]
+      gamma: 0.5
     lr: 2.0e-4
-    batch_size: 16
-    valid_batch_size: 64
-    dataloader_workers: 6
+    batch_size: 32
+    valid_batch_size: 128
+    dataloader_workers: 8
     print_freq: 100
     save_img_freq: 1000
     save_vid_freq: 1000
