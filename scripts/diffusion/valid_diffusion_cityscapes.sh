@@ -5,7 +5,7 @@ seed=1000
 while [ $seed -le 5000 ]
 do
     python ./scripts/diffusion/valid.py \
-        --random-seed $seed
+        --random-seed $seed \
         --config ./config/cityscapes128.yaml \
         --checkpoint ./logs_training/diffusion/cityscapes128_not_onlyflow/snapshots/flowdiff.pth \
         --flowae_checkpoint ./logs_training/flow_pretrained/cityscapes128_perspective/snapshots/RegionMM.pth \

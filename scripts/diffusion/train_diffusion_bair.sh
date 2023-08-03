@@ -17,7 +17,7 @@ python ./scripts/diffusion/run.py \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \
     --random-seed 1234 \
-    --postfix baseDM_woRefFea_woOutConv_Batch32_lr2e-4_c2p7
+    --postfix baseDM_wRefFea_wcond_woOutConv_Batch32_lr2e-4_c2p7
 
 # 预训练
 # python ./scripts/diffusion/run.py \
