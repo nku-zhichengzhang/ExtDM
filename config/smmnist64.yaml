@@ -8,8 +8,9 @@
 experiment_name: smmnist64
 
 dataset_params:
-#   root_dir: /mnt/sda/hjy/SMMNIST/SMMNIST_h5 # u11
-  root_dir: /mnt/sda/hjy/smmnist/smmnist_h5 #u16
+  # root_dir: /mnt/sda/hjy/SMMNIST/SMMNIST_h5 # u11
+  # root_dir: /mnt/sda/hjy/smmnist/smmnist_h5 # u16
+  root_dir: /home/u009079/zzc/data/vidp/SMMNIST/SMMNIST_h5 # hpc_403
   frame_shape: 64
   augmentation_params:
     flip_param:
@@ -25,7 +26,7 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 10
-    pred_frames: 5
+    pred_frames: 10
   valid_params:
     total_videos: 256
     type: test
@@ -103,7 +104,7 @@ diffusion_params:
     #   f_max: [1.]
     #   f_min: [1.]
     scheduler_param:
-      milestones: [50000, 100000, 150000]
+      milestones: [70000, 120000]
       gamma: 0.5
     lr: 2.0e-4
     batch_size: 32

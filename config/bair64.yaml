@@ -102,16 +102,16 @@ diffusion_params:
     max_epochs: 148
     num_repeats: 1
     scheduler_param:
-      milestones: [50000, 100000, 150000]
+      milestones: [70000, 120000]
       gamma: 0.5
     lr: 2.0e-4
     batch_size: 32
     valid_batch_size: 128
     dataloader_workers: 8
-    print_freq: 100
-    save_img_freq: 1000
-    save_vid_freq: 1000
-    update_ckpt_freq: 1000
+    print_freq: 1 #00
+    save_img_freq: 10 #00
+    save_vid_freq: 10 #00
+    update_ckpt_freq: 10 #00
     save_ckpt_freq: 5000
     sample_vid_freq: 1000 # useless
 
