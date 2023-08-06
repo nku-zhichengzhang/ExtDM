@@ -1,3 +1,4 @@
+README.md
 setup.py
 edm.egg-info/PKG-INFO
 edm.egg-info/SOURCES.txt

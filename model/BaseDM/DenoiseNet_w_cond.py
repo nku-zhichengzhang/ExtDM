@@ -5,26 +5,17 @@ from torch import nn, einsum
 import torch.nn.functional as F
 from functools import partial
 
-from torchvision import transforms as T
-from PIL import Image
-
-from tqdm import tqdm
 from einops import rearrange
 from einops_exts import rearrange_many
 
 from rotary_embedding_torch import RotaryEmbedding
 
-from model.DM.text import tokenize, bert_embed, BERT_MODEL_DIM
+from model.DM.text import BERT_MODEL_DIM
 
 
 # helpers functions
-
 def exists(x):
     return x is not None
-
-
-def noop(*args, **kwargs):
-    pass
 
 
 def is_odd(n):
@@ -37,21 +28,6 @@ def default(val, d):
     return d() if callable(d) else d
 
 
-def cycle(dl):
-    while True:
-        for data in dl:
-            yield data
-
-
-def num_to_groups(num, divisor):
-    groups = num // divisor
-    remainder = num % divisor
-    arr = [divisor] * groups
-    if remainder > 0:
-        arr.append(remainder)
-    return arr
-
-
 def prob_mask_like(shape, prob, device):
     if prob == 1:
         return torch.ones(shape, device=device, dtype=torch.bool)
@@ -61,14 +37,7 @@ def prob_mask_like(shape, prob, device):
         return torch.zeros(shape, device=device).float().uniform_(0, 1) < prob
 
 
-def is_list_str(x):
-    if not isinstance(x, (list, tuple)):
-        return False
-    return all([type(el) == str for el in x])
-
-
 # relative positional bias
-
 class RelativePositionBias(nn.Module):
     def __init__(
             self,
@@ -565,7 +534,6 @@ class Unet3D(nn.Module):
         self.channels = channels
 
         # temporal attention and its relative positional encoding
-
         rotary_emb = RotaryEmbedding(min(32, attn_dim_head))
         
         # TODO: 
@@ -577,7 +545,6 @@ class Unet3D(nn.Module):
                                                       max_distance=32)  # realistically will not be able to generate that many frames of video... yet
 
         # initial conv
-
         init_dim = default(init_dim, dim)
         motion_dim = 16
         assert is_odd(init_kernel_size)
@@ -594,7 +561,7 @@ class Unet3D(nn.Module):
         # dimensions
         dims = [init_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
-
+        
         # time conditioning
         time_dim = dim * 4
         self.time_mlp = nn.Sequential(
@@ -605,7 +572,6 @@ class Unet3D(nn.Module):
         )
 
         # text conditioning
-
         self.has_cond = exists(cond_dim) or use_bert_text_cond
         cond_dim = BERT_MODEL_DIM if use_bert_text_cond else cond_dim
 
@@ -619,7 +585,6 @@ class Unet3D(nn.Module):
         cond_dim = time_dim + int(cond_dim or 0)
 
         # layers
-
         self.downs = nn.ModuleList([])
         self.ups = nn.ModuleList([])
         self.motion_enc = nn.ModuleList([])
@@ -627,10 +592,9 @@ class Unet3D(nn.Module):
         num_resolutions = len(in_out)
 
         # block type
-
         block_klass = partial(ResnetBlock, groups=resnet_groups)
         block_klass_motion_cond = partial(ResnetBlock_w_Motion, groups=resnet_groups, time_emb_dim=cond_dim)
-        
+
         self.motion_enc.append(nn.ModuleList([
             block_klass(motion_dim, motion_dim),
             block_klass(motion_dim, motion_dim),
@@ -638,12 +602,10 @@ class Unet3D(nn.Module):
             Residual(PreNorm(motion_dim, temporal_attn(motion_dim))),
             MotionAdaptor(motion_dim*self.tc, 256, motion_dim*self.tp)
         ]))
-        
-        # modules for all layers
 
+        # modules for all layers
         for ind, (dim_in, dim_out) in enumerate(in_out):
             is_last = ind >= (num_resolutions - 1)
-
             self.downs.append(nn.ModuleList([
                 block_klass_motion_cond(dim_in, dim_out, motion_dim=motion_dim),
                 block_klass_motion_cond(dim_out, dim_out, motion_dim=motion_dim),
@@ -655,7 +617,7 @@ class Unet3D(nn.Module):
         mid_dim = dims[-1]
         self.mid_block1 = block_klass_motion_cond(mid_dim, mid_dim, motion_dim=motion_dim)
 
-        # TODO: 
+        # TODO:
         spatial_attn = EinopsToAndFrom('b c f h w', 'b f (h w) c', Attention(mid_dim, heads=attn_heads))
 
         self.mid_spatial_attn =  Residual(PreNorm(mid_dim, spatial_attn))
@@ -673,19 +635,12 @@ class Unet3D(nn.Module):
                 Residual(PreNorm(dim_in, temporal_attn(dim_in))),
                 Upsample(dim_in, use_deconv, padding_mode) if not is_last else nn.Identity()
             ]))
-
-        # out_dim = default(out_grid_dim, channels)
+            
+        
         self.final_conv = nn.Sequential(
             block_klass(dim * 2, dim),
             nn.Conv3d(dim, out_grid_dim, 1)
         )
-
-        # added by nhm
-        self.use_final_activation = use_final_activation
-        if self.use_final_activation:
-            self.final_activation = nn.Tanh()
-        else:
-            self.final_activation = nn.Identity()
 
         # added by nhm for predicting occlusion mask
         self.occlusion_map = nn.Sequential(
@@ -693,12 +648,7 @@ class Unet3D(nn.Module):
             nn.Conv3d(dim, out_conf_dim, 1)
         )
 
-    def forward_with_cond_scale(
-            self,
-            *args,
-            cond_scale=2.,
-            **kwargs
-    ):
+    def forward_with_cond_scale(self, *args, cond_scale=2.,  **kwargs ):
         if cond_scale == 0:
             null_logits = self.forward(*args, null_cond_prob=1., **kwargs)
             return null_logits
@@ -710,36 +660,32 @@ class Unet3D(nn.Module):
         null_logits = self.forward(*args, null_cond_prob=1., **kwargs)
         return null_logits + (logits - null_logits) * cond_scale
 
-    def forward(
-            self,
-            x,
-            time,
-            cond_frames,
-            cond=None,
-            null_cond_prob=0.,
-            none_cond_mask=None,
-            focus_present_mask=None,
-            prob_focus_present=0.
-            # probability at which a given batch sample will focus on the present (0. is all off, 1. is completely arrested attention across time)
-    ):
+    def forward(self, x, time, cond_frames, cond_fea=None, cond=None, null_cond_prob=0., none_cond_mask=None, focus_present_mask=None, prob_focus_present=0.):
+        # probability at which a given batch sample will focus on the present (0. is all off, 1. is completely arrested attention across time)
         assert not (self.has_cond and not exists(cond)), 'cond must be passed in if cond_dim specified'
         batch, device = x.shape[0], x.device
         tc, tp = cond_frames.shape[2], x.shape[2]
         assert tc == self.tc
         assert tp == self.tp
         
+        # b c t h w
         # x = torch.cat([x, cond_frames], dim=2)
+        if not cond_fea is None:
+            # print(cond_fea.shape)
+            # print(x.shape)
+            x = torch.cat([x, cond_fea.unsqueeze(2).repeat(1,1,x.shape[2],1,1)], dim=1)
+            # print(x.shape)
+        
+        focus_present_mask  = default(focus_present_mask, lambda: prob_mask_like((batch,), prob_focus_present, device=device))
 
-        focus_present_mask = default(focus_present_mask,
-                                     lambda: prob_mask_like((batch,), prob_focus_present, device=device))
-
-        time_rel_pos_bias      = self.time_rel_pos_bias(x.shape[2],           device=x.device)
-        time_cond_rel_pos_bias = self.time_rel_pos_bias(cond_frames.shape[2], device=x.device)
+        time_rel_pos_bias   = self.time_rel_pos_bias(tp, device=x.device)
+        time_cond_rel_pos_bias = self.time_rel_pos_bias(tc, device=x.device)
 
         x = self.init_conv(x)
         r = x.clone()
         x = self.init_temporal_attn(x, pos_bias=time_rel_pos_bias)
         
+        # Motion Encoding
         cond_frames = self.init_cond_conv(cond_frames)
         cond_frames = self.init_cond_temporal_attn(cond_frames, pos_bias=time_cond_rel_pos_bias)
 
@@ -767,7 +713,6 @@ class Unet3D(nn.Module):
         for block1, block2, spatial_attn, temporal_attn, downsample in self.downs:
             x = block1(x, cond_frames, t)
             x = block2(x, cond_frames, t)
-
             x = spatial_attn(x)
             x = temporal_attn(x, pos_bias=time_rel_pos_bias, focus_present_mask=focus_present_mask)
             h.append(x)
@@ -787,373 +732,6 @@ class Unet3D(nn.Module):
             x = upsample(x)
 
         x = torch.cat((x, r), dim=1)
-        return torch.cat((self.final_conv(x), self.occlusion_map(x)), dim=1)
-
-# gaussian diffusion trainer class
-
-def extract(a, t, x_shape):
-    b, *_ = t.shape
-    out = a.gather(-1, t)
-    return out.reshape(b, *((1,) * (len(x_shape) - 1)))
-
-
-def cosine_beta_schedule(timesteps, s=0.008):
-    """
-    cosine schedule
-    as proposed in https://openreview.net/forum?id=-NEXDKk8gZ
-    """
-    steps = timesteps + 1
-    x = torch.linspace(0, timesteps, steps, dtype=torch.float64)
-    alphas_cumprod = torch.cos(((x / timesteps) + s) / (1 + s) * torch.pi * 0.5) ** 2
-    alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
-    betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
-    return torch.clip(betas, 0, 0.9999)
-
-
-class GaussianDiffusion(nn.Module):
-    def __init__(
-            self,
-            denoise_fn,
-            *,
-            image_size,
-            num_frames,
-            text_use_bert_cls=False,
-            channels=3,
-            timesteps=1000,
-            sampling_timesteps=250,
-            ddim_sampling_eta=1.,
-            loss_type='l1',
-            use_dynamic_thres=False,  # from the Imagen paper
-            dynamic_thres_percentile=0.9,
-            null_cond_prob=0.1
-    ):
-        super().__init__()
-        self.null_cond_prob = null_cond_prob
-        self.channels = channels
-        self.image_size = image_size
-        self.num_frames = num_frames
-        self.denoise_fn = denoise_fn
-
-        betas = cosine_beta_schedule(timesteps)
-
-        alphas = 1. - betas
-        alphas_cumprod = torch.cumprod(alphas, axis=0)
-        alphas_cumprod_prev = F.pad(alphas_cumprod[:-1], (1, 0), value=1.)
-
-        timesteps, = betas.shape
-        self.num_timesteps = int(timesteps)
-        self.loss_type = loss_type
-
-        self.sampling_timesteps = default(sampling_timesteps, timesteps)
-        self.is_ddim_sampling = self.sampling_timesteps < timesteps
-        if self.is_ddim_sampling:
-            print("using ddim samping with %d steps" % sampling_timesteps)
-        self.ddim_sampling_eta = ddim_sampling_eta
-
-        # register buffer helper function that casts float64 to float32
-
-        register_buffer = lambda name, val: self.register_buffer(name, val.to(torch.float32))
-
-        register_buffer('betas', betas)
-        register_buffer('alphas_cumprod', alphas_cumprod)
-        register_buffer('alphas_cumprod_prev', alphas_cumprod_prev)
-
-        # calculations for diffusion q(x_t | x_{t-1}) and others
-
-        register_buffer('sqrt_alphas_cumprod', torch.sqrt(alphas_cumprod))
-        register_buffer('sqrt_one_minus_alphas_cumprod', torch.sqrt(1. - alphas_cumprod))
-        register_buffer('log_one_minus_alphas_cumprod', torch.log(1. - alphas_cumprod))
-        register_buffer('sqrt_recip_alphas_cumprod', torch.sqrt(1. / alphas_cumprod))
-        register_buffer('sqrt_recipm1_alphas_cumprod', torch.sqrt(1. / alphas_cumprod - 1))
-
-        # calculations for posterior q(x_{t-1} | x_t, x_0)
-
-        posterior_variance = betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
-
-        # above: equal to 1. / (1. / (1. - alpha_cumprod_tm1) + alpha_t / beta_t)
-
-        register_buffer('posterior_variance', posterior_variance)
-
-        # below: log calculation clipped because the posterior variance is 0 at the beginning of the diffusion chain
-
-        register_buffer('posterior_log_variance_clipped', torch.log(posterior_variance.clamp(min=1e-20)))
-        register_buffer('posterior_mean_coef1', betas * torch.sqrt(alphas_cumprod_prev) / (1. - alphas_cumprod))
-        register_buffer('posterior_mean_coef2', (1. - alphas_cumprod_prev) * torch.sqrt(alphas) / (1. - alphas_cumprod))
-
-        # text conditioning parameters
-
-        self.text_use_bert_cls = text_use_bert_cls
-
-        # dynamic thresholding when sampling
-
-        self.use_dynamic_thres = use_dynamic_thres
-        self.dynamic_thres_percentile = dynamic_thres_percentile
-
-    def q_mean_variance(self, x_start, t):
-        mean = extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
-        variance = extract(1. - self.alphas_cumprod, t, x_start.shape)
-        log_variance = extract(self.log_one_minus_alphas_cumprod, t, x_start.shape)
-        return mean, variance, log_variance
-
-    def predict_start_from_noise(self, x_t, t, noise):
-        return (
-                extract(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t -
-                extract(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * noise
-        )
-
-    def q_posterior(self, x_start, x_t, t):
-        posterior_mean = (
-                extract(self.posterior_mean_coef1, t, x_t.shape) * x_start +
-                extract(self.posterior_mean_coef2, t, x_t.shape) * x_t
-        )
-        posterior_variance = extract(self.posterior_variance, t, x_t.shape)
-        posterior_log_variance_clipped = extract(self.posterior_log_variance_clipped, t, x_t.shape)
-        return posterior_mean, posterior_variance, posterior_log_variance_clipped
-
-    def p_mean_variance(self, x_cond, x, t, fea, clip_denoised: bool, cond=None, cond_scale=1.):
-        # x_c = torch.cat([x_cond,x],dim=2)
-        fea = fea.unsqueeze(dim=2)
-        epsilon_noise = self.denoise_fn.forward_with_cond_scale(torch.cat([x, fea.repeat(1, 1, x.size(2), 1, 1)], dim=1), t, cond_frames=torch.cat([x_cond, fea.repeat(1, 1, x_cond.size(2), 1, 1)], dim=1), cond=cond, cond_scale=cond_scale)
-        x_recon = self.predict_start_from_noise(x, t=t, noise=epsilon_noise)
-
-        if clip_denoised:
-            s = 1.
-            if self.use_dynamic_thres:
-                s = torch.quantile(
-                    rearrange(x_recon, 'b ... -> b (...)').abs(),
-                    self.dynamic_thres_percentile,
-                    dim=-1
-                )
-
-                s.clamp_(min=1.)
-                s = s.view(-1, *((1,) * (x_recon.ndim - 1)))
-
-            # clip by threshold, depending on whether static or dynamic
-            x_recon = x_recon.clamp(-s, s) / s
-
-        model_mean, posterior_variance, posterior_log_variance = self.q_posterior(x_start=x_recon, x_t=x, t=t)
-        return model_mean, posterior_variance, posterior_log_variance
-
-    @torch.inference_mode()
-    def p_sample(self, x_cond, x, t, fea, cond=None, cond_scale=1., clip_denoised=True):
-        b, *_, device = *x.shape, x.device
-        model_mean, _, model_log_variance = self.p_mean_variance(x_cond=x_cond, x=x, t=t, fea=fea,
-                                                                 clip_denoised=clip_denoised, cond=cond,
-                                                                 cond_scale=cond_scale)
-        noise = torch.randn_like(x)
-        # no noise when t == 0
-        nonzero_mask = (1 - (t == 0).float()).reshape(b, *((1,) * (len(x.shape) - 1)))
-        return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise
-
-    @torch.inference_mode()
-    def p_sample_loop(self, x_cond, fea, shape, cond=None, cond_scale=1.):
-        device = self.betas.device
-
-        b = shape[0]
-        img = torch.randn(shape, device=device)
-        for i in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
-            img = self.p_sample(x_cond, img, torch.full((b,), i, device=device, dtype=torch.long), fea, cond=cond,
-                                cond_scale=cond_scale)
-
-        return img
-        # return unnormalize_img(img)
-
-    @torch.inference_mode()
-    def sample(self, x_cond, fea, cond=None, cond_scale=1., batch_size=16):
-        device = next(self.denoise_fn.parameters()).device
-
-        if is_list_str(cond):
-            cond = bert_embed(tokenize(cond), return_cls_repr=self.text_use_bert_cls).to(device)
-
-        batch_size = x_cond.shape[0] if exists(x_cond) else batch_size
-        image_size = self.image_size
-        channels = self.channels
-        num_frames = self.num_frames - x_cond.size(2)
-        sample_fn = self.p_sample_loop if not self.is_ddim_sampling else self.ddim_sample
-        return sample_fn(x_cond, fea, (batch_size, channels, num_frames, x_cond.shape[3], x_cond.shape[4]), cond=cond,
-                         cond_scale=cond_scale)
-
-    # add by nhm
-    @torch.no_grad()
-    def ddim_sample(self, x_cond, fea, shape, cond=None, cond_scale=1., clip_denoised=True):
-
-        batch, device, total_timesteps, sampling_timesteps, eta = \
-            shape[0], self.betas.device, self.num_timesteps, self.sampling_timesteps, self.ddim_sampling_eta
-
-        times = torch.linspace(0., total_timesteps, steps=sampling_timesteps + 2)[:-1]
-        times = list(reversed(times.int().tolist()))
-        time_pairs = list(zip(times[:-1], times[1:]))
-
-        img = torch.randn(shape, device=device)
-        fea = fea.unsqueeze(dim=2)
-
-        for time, time_next in tqdm(time_pairs, desc='sampling loop time step'):
-            alpha = self.alphas_cumprod_prev[time]
-            alpha_next = self.alphas_cumprod_prev[time_next]
-
-            time_cond = torch.full((batch,), time, device=device, dtype=torch.long)
-            pred_noise = self.denoise_fn.forward_with_cond_scale(
-                torch.cat([img, fea.repeat(1, 1, img.size(2), 1, 1)], dim=1),
-                time_cond,
-                cond_frames=x_cond,
-                cond=cond,
-                cond_scale=cond_scale)
-            x_start = self.predict_start_from_noise(img, t=time_cond, noise=pred_noise)
-
-            if clip_denoised:
-                s = 1.
-                if self.use_dynamic_thres:
-                    s = torch.quantile(
-                        rearrange(x_start, 'b ... -> b (...)').abs(),
-                        self.dynamic_thres_percentile,
-                        dim=-1
-                    )
-
-                    s.clamp_(min=1.)
-                    s = s.view(-1, *((1,) * (x_start.ndim - 1)))
-
-                # clip by threshold, depending on whether static or dynamic
-                x_start = x_start.clamp(-s, s) / s
-
-            sigma = eta * ((1 - alpha / alpha_next) * (1 - alpha_next) / (1 - alpha)).sqrt()
-            c = ((1 - alpha_next) - sigma ** 2).sqrt()
-
-            noise = torch.randn_like(img) if time_next > 0 else 0.
-
-            img = x_start * alpha_next.sqrt() + \
-                  c * pred_noise + \
-                  sigma * noise
-
-        # img = unnormalize_to_zero_to_one(img)
-        return img
-
-    @torch.inference_mode()
-    def interpolate(self, x1, x2, t=None, lam=0.5):
-        b, *_, device = *x1.shape, x1.device
-        t = default(t, self.num_timesteps - 1)
-
-        assert x1.shape == x2.shape
-
-        t_batched = torch.stack([torch.tensor(t, device=device)] * b)
-        xt1, xt2 = map(lambda x: self.q_sample(x, t=t_batched), (x1, x2))
-
-        img = (1 - lam) * xt1 + lam * xt2
-        for i in tqdm(reversed(range(0, t)), desc='interpolation sample time step', total=t):
-            img = self.p_sample(img, torch.full((b,), i, device=device, dtype=torch.long))
-
-        return img
-
-    def q_sample(self, x_start, t, noise=None):
-        noise = default(noise, lambda: torch.randn_like(x_start))
-
-        return (
-                extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start +
-                extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
-        )
-
-    def p_losses(self, x_start_cond, x_start_pred, t, fea, cond=None, noise=None, clip_denoised=True, **kwargs):
-        b, c, f, h, w, device = *x_start_pred.shape, x_start_pred.device
-        noise = default(noise, lambda: torch.randn_like(x_start_pred))
-
-        x_noisy = self.q_sample(x_start=x_start_pred, t=t, noise=noise)
-
-        pred_noise = self.denoise_fn.forward(torch.cat([x_noisy, fea.repeat(1, 1, x_noisy.size(2), 1, 1)], dim=1), t, cond_frames=x_start_cond, cond=cond, null_cond_prob=self.null_cond_prob, none_cond_mask=None, **kwargs)
-
-        if self.loss_type == 'l1':
-            loss = F.l1_loss(noise, pred_noise)
-        elif self.loss_type == 'l2':
-            loss = F.mse_loss(noise, pred_noise)
-        else:
-            raise NotImplementedError()
-
-        pred_x0 = self.predict_start_from_noise(x_noisy, t, pred_noise)
-
-        if clip_denoised:
-            s = 1.
-            if self.use_dynamic_thres:
-                s = torch.quantile(
-                    rearrange(pred_x0, 'b ... -> b (...)').abs(),
-                    self.dynamic_thres_percentile,
-                    dim=-1
-                )
-
-                s.clamp_(min=1.)
-                s = s.view(-1, *((1,) * (pred_x0.ndim - 1)))
-
-            # clip by threshold, depending on whether static or dynamic
-            pred_x0 = pred_x0.clamp(-s, s) / s
-        return loss, pred_x0
-
-    def forward(self, x_cond, x_pred, fea, *args, **kwargs):
-        b, device, img_size, = x_cond.shape[0], x_cond.device, self.image_size
-        # check_shape(x, 'b c f h w', c=self.channels, f=self.num_frames, h=img_size, w=img_size)
-        t = torch.randint(0, self.num_timesteps, (b,), device=device).long()
-        fea = fea.unsqueeze(dim=2)
-        # x = normalize_img(x)
-        return self.p_losses(x_cond, x_pred, t, fea, cond=None, *args, **kwargs)
-
-
-# trainer class
-
-CHANNELS_TO_MODE = {
-    1: 'L',
-    3: 'RGB',
-    4: 'RGBA'
-}
-
-
-def seek_all_images(img, channels=3):
-    assert channels in CHANNELS_TO_MODE, f'channels {channels} invalid'
-    mode = CHANNELS_TO_MODE[channels]
-
-    i = 0
-    while True:
-        try:
-            img.seek(i)
-            yield img.convert(mode)
-        except EOFError:
-            break
-        i += 1
-
-
-# tensor of shape (channels, frames, height, width) -> gif
-
-def video_tensor_to_gif(tensor, path, duration=120, loop=0, optimize=True):
-    images = map(T.ToPILImage(), tensor.unbind(dim=1))
-    first_img, *rest_imgs = images
-    first_img.save(path, save_all=True, append_images=rest_imgs, duration=duration, loop=loop, optimize=optimize)
-    return images
-
-
-# gif -> (channels, frame, height, width) tensor
-
-def gif_to_tensor(path, channels=3, transform=T.ToTensor()):
-    img = Image.open(path)
-    tensors = tuple(map(transform, seek_all_images(img, channels=channels)))
-    return torch.stack(tensors, dim=1)
-
-
-def identity(t, *args, **kwargs):
-    return t
-
-
-def normalize_img(t):
-    return t * 2 - 1
-
-
-# def unnormalize_img(t):
-#     return (t + 1) * 0.5
-
-
-def cast_num_frames(t, *, frames):
-    f = t.shape[1]
-
-    if f == frames:
-        return t
-
-    if f > frames:
-        return t[:, :frames]
-
-    return F.pad(t, (0, 0, 0, 0, 0, frames - f))
-
-
+        x_fin = self.final_conv(x)
+        x_occ = self.occlusion_map(x)
+        return torch.cat((x_fin, x_occ), dim=1)

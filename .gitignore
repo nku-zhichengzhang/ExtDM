@@ -1,3 +1,5 @@
 logs_training/*
 logs_validation/*
 __pycache__
+wandb
+slurm-*.out

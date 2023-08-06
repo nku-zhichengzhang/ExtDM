@@ -9,7 +9,7 @@ python ./scripts/diffusion/run.py \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \
     --random-seed 1234 \
-    --postfix 0727_cond2pred7_notonlyflow_lr2e-4_MultiStepLR
+    --postfix baseDM_wRefFea_wcond_woOutConv_Batch32_lr2e-4_c2p7
 
 # 预训练
 # python ./scripts/diffusion/run.py \

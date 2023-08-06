@@ -25,7 +25,6 @@ import random
 from einops import rearrange
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
     cudnn.enabled = True
     cudnn.benchmark = True
 

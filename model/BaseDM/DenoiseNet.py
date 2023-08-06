@@ -635,10 +635,10 @@ class Unet3D(nn.Module):
                 Upsample(dim_in, use_deconv, padding_mode) if not is_last else nn.Identity()
             ]))
             
-        self.out_conv = nn.Sequential(
-            block_klass(self.tc+self.tp, dim),
-            nn.Conv3d(dim, self.tp, 1)
-        )
+        # self.out_conv = nn.Sequential(
+        #     block_klass(self.tc+self.tp, dim),
+        #     nn.Conv3d(dim, self.tp, 1)
+        # )
         
         self.final_conv = nn.Sequential(
             block_klass(dim * 2, dim),
@@ -671,7 +671,7 @@ class Unet3D(nn.Module):
         null_logits = self.forward(*args, null_cond_prob=1., **kwargs)
         return null_logits + (logits - null_logits) * cond_scale
 
-    def forward(self, x, time, cond_frames, cond=None, null_cond_prob=0., none_cond_mask=None, focus_present_mask=None, prob_focus_present=0.):
+    def forward(self, x, time, cond_frames, cond_fea=None, cond=None, null_cond_prob=0., none_cond_mask=None, focus_present_mask=None, prob_focus_present=0.):
         # probability at which a given batch sample will focus on the present (0. is all off, 1. is completely arrested attention across time)
         assert not (self.has_cond and not exists(cond)), 'cond must be passed in if cond_dim specified'
         batch, device = x.shape[0], x.device
@@ -681,7 +681,9 @@ class Unet3D(nn.Module):
         
         # b c t h w
         x = torch.cat([x, cond_frames], dim=2)
-
+        if not cond_fea is None:
+            x = torch.cat([x, cond_fea.unsqueeze(2).repeat(1,1,x.shape[2],1,1)], dim=1)
+        
         focus_present_mask  = default(focus_present_mask, lambda: prob_mask_like((batch,), prob_focus_present, device=device))
 
         time_rel_pos_bias   = self.time_rel_pos_bias(x.shape[2], device=x.device)
@@ -727,9 +729,10 @@ class Unet3D(nn.Module):
             x = upsample(x)
 
         x = torch.cat((x, r), dim=1)
+        _, x_fin = self.final_conv(x).split([tc, tp], dim=2)
+        _, x_occ = self.occlusion_map(x).split([tc, tp], dim=2)
+        # x = rearrange(x, "b c t h w -> b t c h w")
+        # x = self.out_conv(x)
+        # x = rearrange(x, "b t c h w -> b c t h w")
         
-        x = rearrange(x, "b c t h w -> b t c h w")
-        x = self.out_conv(x)
-        x = rearrange(x, "b t c h w -> b c t h w")
-        
-        return torch.cat((self.final_conv(x), self.occlusion_map(x)), dim=1)
+        return torch.cat((x_fin, x_occ), dim=1)
