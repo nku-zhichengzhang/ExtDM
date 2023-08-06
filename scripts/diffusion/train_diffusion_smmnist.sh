@@ -1,7 +1,8 @@
 # CUDA_VISIBLE_DEVICES=0,1 sh ./scripts/diffusion/train_diffusion_smmnist.sh
 
-# FLOWCKPT=/mnt/sda/hjy/flow_pretrained
-FLOWCKPT=/home/u009079/zzc/data/vidp/flow_pretrained # hpc_403
+FLOWCKPT=/mnt/rhdd/zzc/data/video_prediction/flow_pretrained # u8
+# FLOWCKPT=/mnt/sda/hjy/flow_pretrained # u16
+# FLOWCKPT=/home/u009079/zzc/data/vidp/flow_pretrained # hpc_403
 
 # 从头训练
 python ./scripts/diffusion/run.py \
