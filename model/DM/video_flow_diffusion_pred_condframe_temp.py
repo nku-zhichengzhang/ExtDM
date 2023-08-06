@@ -1059,10 +1059,6 @@ class GaussianDiffusion(nn.Module):
 
         x_noisy = self.q_sample(x_start=x_start_pred, t=t, noise=noise)
 
-        # if is_list_str(cond):
-        #     none_cond_mask = [ii == "None" for ii in cond]
-        #     cond = bert_embed(tokenize(cond), return_cls_repr=self.text_use_bert_cls)
-        #     cond = cond.to(device)
         pred_noise = self.denoise_fn.forward(torch.cat([x_noisy, fea.repeat(1, 1, x_noisy.size(2), 1, 1)], dim=1), t, cond_frames=x_start_cond, cond=cond, null_cond_prob=self.null_cond_prob, none_cond_mask=None, **kwargs)
 
         if self.loss_type == 'l1':
