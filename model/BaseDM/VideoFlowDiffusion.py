@@ -17,8 +17,6 @@ from model.LFAE.region_predictor import RegionPredictor
 from model.BaseDM.DenoiseNet_w_cond import Unet3D
 from model.BaseDM.Diffusion import GaussianDiffusion
 
-
-
 class FlowDiffusion(nn.Module):
     def __init__(self, 
             config="",

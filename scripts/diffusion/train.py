@@ -11,6 +11,8 @@ from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.lr_scheduler import LambdaLR
 from utils.lr_scheduler import LambdaLinearScheduler
 
+from data.two_frames_dataset import DatasetRepeater
+
 from utils.misc import grid2fig, conf2fig
 from utils.meter import AverageMeter
 from utils.visualize import sample_img
@@ -25,9 +27,9 @@ import imageio
 import torch.backends.cudnn as cudnn
 from data.video_dataset import VideoDataset
 
-from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
+# from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
 # from model.newDM.new_video_flow_diffusion_model import FlowDiffusion
-# from model.BaseDM.VideoFlowDiffusion import FlowDiffusion
+from model.BaseDM.VideoFlowDiffusion import FlowDiffusion
 
 def train(
         config, 
@@ -71,6 +73,9 @@ def train(
     # 多少 step 保存一次模型
     save_ckpt_freq = train_params['save_ckpt_freq']
     print("save ckpt freq:", save_ckpt_freq)
+    
+    if 'num_repeats' in train_params or train_params['num_repeats'] != 1:
+        train_dataset = DatasetRepeater(train_dataset, train_params['num_repeats'])
 
     optimizer = torch.optim.AdamW(
         model.diffusion.parameters(), 
