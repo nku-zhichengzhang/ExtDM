@@ -14,7 +14,7 @@ from einops import rearrange
 
 from torch.utils.data import DataLoader
 
-from data.video_dataset import VideoDataset
+from data.video_dataset import VideoDataset, dataset2videos
 from model.LFAE.flow_autoenc import FlowAE
 from utils.meter import AverageMeter
 from utils.seed import setup_seed
@@ -81,7 +81,6 @@ if __name__ == "__main__":
         type=dataset_params['valid_params']['type'], 
         image_size=dataset_params['frame_shape'],
         num_frames=dataset_params['valid_params']['cond_frames'] + dataset_params['valid_params']['pred_frames'], 
-        mean=(0.0, 0.0, 0.0),
         total_videos=dataset_params['valid_params']['total_videos'],
     )
 
@@ -109,6 +108,8 @@ if __name__ == "__main__":
             break
 
         real_vids, real_names = batch
+        # (b t c h)/(b t h w c) -> (b t c h w)
+        real_vids = dataset2videos(real_vids)
         real_vids = rearrange(real_vids, 'b t c h w -> b c t h w')
 
         origin_videos.append(real_vids)

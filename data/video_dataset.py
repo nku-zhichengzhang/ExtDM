@@ -4,14 +4,34 @@ import torch
 
 import numpy as np
 import torch.utils.data as data
-from skimage.color import gray2rgb
+# from skimage.color import gray2rgb
 
 import cv2
-import torchvision.transforms.functional as F
-from torchvision import transforms
+# import torchvision.transforms.functional as F
+# from torchvision import transforms
 
 from data.h5 import HDF5Dataset
 
+from einops import rearrange, repeat
+
+def dataset2video(video):
+    if len(video.shape) == 3:
+        video = repeat(video, 't h w -> t c h w', c=3)
+    elif video.shape[1] == 1:
+        video = repeat(video, 't c h w -> t (n c) h w', n=3)
+    else:
+        video = rearrange(video, 't h w c -> t c h w')
+    return video
+
+def dataset2videos(videos):
+    if len(videos.shape) == 4:
+        videos = repeat(videos, 'b t h w -> b t c h w', c=3)
+    elif videos.shape[2] == 1:
+        videos = repeat(videos, 'b t c h w -> b t (n c) h w', n=3)
+    else:
+        videos = rearrange(videos, 'b t h w c -> b t c h w')
+    return videos
+        
 def resize(im, desired_size, interpolation):
     old_size = im.shape[:2]
     ratio = float(desired_size)/max(old_size)
@@ -35,19 +55,17 @@ class VideoDataset(data.Dataset):
         total_videos=-1, 
         num_frames=40, 
         image_size=64, 
-        mean=(0, 0, 0), 
-        color_jitter=None, 
-        random_horizontal_flip=False
+        # color_jitter=None, 
+        # random_horizontal_flip=False
     ):
         super(VideoDataset, self).__init__()
-        self.mean = mean
         self.num_frames = num_frames
         self.image_size = image_size
         self.total_videos = total_videos
-        self.random_horizontal_flip = random_horizontal_flip
-        self.jitter = transforms.ColorJitter(hue=color_jitter) if color_jitter else None
+        # self.random_horizontal_flip = random_horizontal_flip
+        # self.jitter = transforms.ColorJitter(hue=color_jitter) if color_jitter else None
         self.videos_ds = HDF5Dataset(os.path.join(data_dir, type))
-
+        
     def __len__(self):
         if self.total_videos > 0:
             return self.total_videos
@@ -69,7 +87,6 @@ class VideoDataset(data.Dataset):
         shard_idx, idx_in_shard = self.videos_ds.get_indices(video_index)
         
         prefinals = []
-        flip_p = np.random.randint(2) == 0 if self.random_horizontal_flip else 0
         with self.videos_ds.opener(self.videos_ds.shard_paths[shard_idx]) as f:
             total_num_frames = f['len'][str(idx_in_shard)][()]
 
@@ -80,28 +97,28 @@ class VideoDataset(data.Dataset):
             # read frames
             for i in range(time_idx, min(time_idx + self.num_frames, total_num_frames)):
                 img = f[str(idx_in_shard)][str(i)][()]
-                if len(img.shape) == 2 or img.shape[2] == 1:
-                    img = gray2rgb(img)
-                arr = transforms.RandomHorizontalFlip(flip_p)(transforms.ToTensor()(img))
+                arr = torch.tensor(img)/255.0
                 prefinals.append(arr)
 
         data = torch.stack(prefinals)
-        if self.jitter:
-            data = self.jitter(data)
+        
+        # if self.jitter:
+        #     data = self.jitter(data)
+        
+        # if random_horizontal_flip and np.random.random() >= 0.5: 
+        #     data = data[::-1]
+        
         return data, video_index
-
-if __name__ == "__main__":
+    
+def check_video_data_structure():
     import mediapy as media
-    from einops import rearrange
-
-    # dataset_root = "/mnt/sda/hjy/kth/processed/"
 
     dataset_roots = [
         # "/mnt/sda/hjy/SMMNIST/SMMNIST_h5",                        # train & test
         # "/mnt/sda/hjy/kth/processed/",                            # train & valid
         # "/mnt/sda/hjy/bair/mcvd-pytorch/datasets/BAIR/BAIR_h5",   # train & test
-        # "/mnt/sda/hjy/cityscapes/cityscapes_processed/",          # train & test
-        "/mnt/sda/hjy/fdm/CARLA_Town_01_h5",                      # train & test
+        "/mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5/",          # train & test
+        # "/mnt/sda/hjy/fdm/CARLA_Town_01_h5",                      # train & test
     ]
 
     for dataset_root in dataset_roots:
@@ -119,25 +136,66 @@ if __name__ == "__main__":
         print(test_dataset[10][0].shape)
         print(torch.min(test_dataset[10][0]), torch.max(test_dataset[10][0]))
         print(test_dataset[10][1])
+        
+        train_video = train_dataset[20][0]
+        test_video = test_dataset[20][0]
+        
+        train_video = dataset2video(train_video)
+        test_video = dataset2video(test_video)
+        
+        print(train_video.shape)
+        print(test_video.shape)
 
-        media.show_videos(
-            [
-                rearrange(train_dataset[10][0], 't c h w -> t h w c').numpy(),
-                rearrange(test_dataset[10][0], 't c h w -> t h w c').numpy()
-            ],
-            fps = 20
+        media.show_video(rearrange(train_video, 't c h w -> t h w c').numpy(),fps = 20)
+        media.show_video(rearrange(test_video, 't c h w -> t h w c').numpy(),fps = 20)
+
+        """
+        479
+        torch.Size([40, 64, 64])
+        tensor(0.0627) tensor(0.8078)
+        10
+
+        or like
+        
+        256
+        torch.Size([30, 128, 128, 3])
+        tensor(0.) tensor(0.8863)
+        60
+
+        """
+
+def check_num_workers():
+    from time import time
+    import multiprocessing as mp
+    from torch.utils.data import DataLoader
+
+    print(f"num of CPU: {mp.cpu_count()}")
+
+    # dataset_root = "/mnt/rhdd/zzc/data/video_prediction/SMMNIST/SMMNIST_h5"
+    dataset_root = "/mnt/rhdd/zzc/data/video_prediction/KTH/processed/"
+    # dataset_root = "/mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5/"
+    dataset_type = 'train'
+    train_dataset = VideoDataset(dataset_root, dataset_type)
+
+    for num_workers in range(2, 10, 2):  
+        train_dataloader = DataLoader(
+            train_dataset,
+            batch_size=32,
+            shuffle=True, 
+            num_workers=num_workers,
+            pin_memory=True,
+            drop_last=False
         )
 
-        """
-        60000
-        torch.Size([40, 3, 64, 64])
-        tensor(0.) tensor(1.)
-        10
+        for _ in range(3):
+            start = time()
+            for _, _ in enumerate(train_dataloader, 0):
+                pass
+            end = time()
+            print("Finish with:{} second, num_workers={}".format(end - start, num_workers))
 
-        256
-        torch.Size([40, 3, 64, 64])
-        tensor(0.) tensor(1.)
-        10
-        """
-
+if __name__ == "__main__":
+    # check_video_data_structure()
+    check_num_workers()
+    
 

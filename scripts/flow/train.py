@@ -16,7 +16,7 @@ from model.LFAE.util import Visualizer
 from model.LFAE.sync_batchnorm import DataParallelWithCallback
 
 from data.two_frames_dataset import TwoFramesDataset
-from data.video_dataset import VideoDataset
+from data.video_dataset import VideoDataset, dataset2videos
 from data.two_frames_dataset import DatasetRepeater
 
 import timeit
@@ -289,7 +289,8 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
             break
 
         total_vids, video_names = batch
-
+        # (b t c h)/(b t h w c) -> (b t c h w)
+        real_vids = dataset2videos(real_vids)
         origin_videos.append(total_vids)
 
         # real_vids 

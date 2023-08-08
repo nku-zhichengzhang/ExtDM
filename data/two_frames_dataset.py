@@ -204,7 +204,7 @@ if __name__ == "__main__":
         with open(yaml_file) as f:
             config = yaml.safe_load(f)
 
-        dataset = H5FramesDataset(**config['dataset_params'], type=type, total_videos=total_videos)
+        dataset = TwoFramesDataset(**config['dataset_params'], type=type, total_videos=total_videos)
         
         print("*"*20)
         data = dataset[10]

@@ -12,7 +12,7 @@ import timeit
 import random
 import json_tricks as json
 
-from data.video_dataset import VideoDataset
+from data.video_dataset import VideoDataset, dataset2videos
 from model.LFAE.flow_autoenc import FlowAE
 from utils.meter import AverageMeter
 from utils.seed import setup_seed
@@ -67,8 +67,6 @@ if __name__ == "__main__":
 
     setup_seed(args.random_seed)
 
-    MEAN = (0.0, 0.0, 0.0)
-
     ckpt_dir = os.path.join(args.log_dir, "flowae_result")
     os.makedirs(ckpt_dir, exist_ok=True)
 
@@ -97,7 +95,6 @@ if __name__ == "__main__":
                                     type=args.data_type, 
                                     image_size=args.input_size,
                                     num_frames=args.cond_frames+args.pred_frames,
-                                    mean=MEAN,
                                     total_videos=args.num_videos
                                 ),
                                 batch_size=args.batch_size,
@@ -127,7 +124,8 @@ if __name__ == "__main__":
         data_time.update(timeit.default_timer() - iter_end)
 
         total_vids, video_names = batch
-
+        # (b t c h)/(b t h w c) -> (b t c h w)
+        real_vids = dataset2videos(real_vids)
         origin_videos.append(total_vids)
 
         # real_vids 

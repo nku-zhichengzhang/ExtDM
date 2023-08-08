@@ -25,7 +25,7 @@ from einops import rearrange
 import imageio
 
 import torch.backends.cudnn as cudnn
-from data.video_dataset import VideoDataset
+from data.video_dataset import VideoDataset, dataset2videos
 
 from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
 # from model.newDM.new_video_flow_diffusion_model import FlowDiffusion
@@ -56,7 +56,6 @@ def train(
         type=dataset_params['train_params']['type'], 
         image_size=dataset_params['frame_shape'],
         num_frames=dataset_params['train_params']['cond_frames'] + dataset_params['train_params']['pred_frames'],
-        mean=(0.0, 0.0, 0.0)
     )
     
     valid_dataset = VideoDataset(
@@ -64,7 +63,6 @@ def train(
         type=dataset_params['valid_params']['type'], 
         image_size=dataset_params['frame_shape'],
         num_frames=dataset_params['valid_params']['cond_frames'] + dataset_params['valid_params']['pred_frames'], 
-        mean=(0.0, 0.0, 0.0),
         total_videos=dataset_params['valid_params']['total_videos'],
     )
 
@@ -170,8 +168,8 @@ def train(
             data_time.update(timeit.default_timer() - iter_end)
 
             real_vids, real_names = batch
-            # use first frame of each video as reference frame
-
+            # (b t c h)/(b t h w c) -> (b t c h w)
+            real_vids = dataset2videos(real_vids)
             real_vids = rearrange(real_vids, 'b t c h w -> b c t h w')
 
             # print(real_vids.shape)
@@ -404,6 +402,8 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
             break
 
         real_vids, real_names = batch
+        # (b t c h)/(b t h w c) -> (b t c h w)
+        real_vids = dataset2videos(real_vids)
         real_vids = rearrange(real_vids, 'b t c h w -> b c t h w')
 
         origin_videos.append(real_vids)
