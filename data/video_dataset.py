@@ -173,7 +173,7 @@ def check_num_workers():
 
     # dataset_root = "/mnt/rhdd/zzc/data/video_prediction/KTH/processed/" # u8 - xs
     # dataset_root = "/mnt/sda/hjy/kth/processed/" # u11 - xs
-    dataset_root = "/mnt/sda/hjy/kth/kth_h5/" # u16 - 0.80s
+    dataset_root = "/mnt/sda/hjy/kth/kth_h5/" # u16 - 0.72s
     dataset_type = 'train'
     train_dataset = VideoDataset(dataset_root, dataset_type)
 
