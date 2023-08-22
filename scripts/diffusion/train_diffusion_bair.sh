@@ -1,6 +1,8 @@
 # sh ./scripts/diffusion/train_diffusion_bair.sh
 
-FLOWCKPT=/mnt/rhdd/zzc/data/video_prediction/flow_pretrained
+# FLOWCKPT=/mnt/rhdd/zzc/data/video_prediction/flow_pretrained # u8
+# FLOWCKPT=/mnt/sda/hjy/flow_pretrained/ # u11
+FLOWCKPT=/mnt/sda/hjy/flow_pretrained # u16
 
 # 从头训练
 python ./scripts/diffusion/run.py \
@@ -9,7 +11,9 @@ python ./scripts/diffusion/run.py \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \
     --random-seed 1234 \
-    --postfix baseDM_wRefFea_wcond_woOutConv_Batch32_lr2e-4_c2p7
+    --postfix DM_Batch64_lr4e-4_c2p2
+
+# --postfix baseDM_wRefFea_wcond_woOutConv_Batch32_lr2e-4_c2p7
 
 # 预训练
 # python ./scripts/diffusion/run.py \

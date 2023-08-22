@@ -171,13 +171,13 @@ def check_num_workers():
 
     print(f"num of CPU: {mp.cpu_count()}")
 
-    # dataset_root = "/mnt/rhdd/zzc/data/video_prediction/SMMNIST/SMMNIST_h5"
-    dataset_root = "/mnt/rhdd/zzc/data/video_prediction/KTH/processed/"
-    # dataset_root = "/mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5/"
+    # dataset_root = "/mnt/rhdd/zzc/data/video_prediction/KTH/processed/" # u8 - xs
+    # dataset_root = "/mnt/sda/hjy/kth/processed/" # u11 - xs
+    dataset_root = "/mnt/sda/hjy/kth/kth_h5/" # u16 - 0.80s
     dataset_type = 'train'
     train_dataset = VideoDataset(dataset_root, dataset_type)
 
-    for num_workers in range(2, 10, 2):  
+    for num_workers in range(8, 10, 2):  
         train_dataloader = DataLoader(
             train_dataset,
             batch_size=32,
@@ -187,7 +187,7 @@ def check_num_workers():
             drop_last=False
         )
 
-        for _ in range(3):
+        for _ in range(5):
             start = time()
             for _, _ in enumerate(train_dataloader, 0):
                 pass
