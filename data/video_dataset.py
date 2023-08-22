@@ -55,6 +55,7 @@ class VideoDataset(data.Dataset):
         total_videos=-1, 
         num_frames=40, 
         image_size=64, 
+        random_time=True,
         # color_jitter=None, 
         # random_horizontal_flip=False
     ):
@@ -62,6 +63,7 @@ class VideoDataset(data.Dataset):
         self.num_frames = num_frames
         self.image_size = image_size
         self.total_videos = total_videos
+        self.random_time = random_time
         # self.random_horizontal_flip = random_horizontal_flip
         # self.jitter = transforms.ColorJitter(hue=color_jitter) if color_jitter else None
         self.videos_ds = HDF5Dataset(os.path.join(data_dir, type))
@@ -91,7 +93,7 @@ class VideoDataset(data.Dataset):
             total_num_frames = f['len'][str(idx_in_shard)][()]
 
             # sample frames
-            if total_num_frames > self.num_frames:
+            if self.random_time and total_num_frames > self.num_frames:
                 # sampling start frames
                 time_idx = np.random.choice(total_num_frames - self.num_frames)
             # read frames
@@ -113,56 +115,49 @@ class VideoDataset(data.Dataset):
 def check_video_data_structure():
     import mediapy as media
 
-    dataset_roots = [
-        # "/mnt/sda/hjy/SMMNIST/SMMNIST_h5",                        # train & test
-        # "/mnt/sda/hjy/kth/processed/",                            # train & valid
-        # "/mnt/sda/hjy/bair/mcvd-pytorch/datasets/BAIR/BAIR_h5",   # train & test
-        "/mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5/",          # train & test
-        # "/mnt/sda/hjy/fdm/CARLA_Town_01_h5",                      # train & test
-    ]
+    dataset_root = dataset_root = "/mnt/sda/hjy/kth/processed/" # u11 - xs
+    
+    dataset_type = 'train'
+    train_dataset = VideoDataset(dataset_root, dataset_type)
+    print(len(train_dataset))
+    print(train_dataset[10][0].shape)
+    print(torch.min(train_dataset[10][0]), torch.max(train_dataset[10][0]))
+    print(train_dataset[10][1])
 
-    for dataset_root in dataset_roots:
-        dataset_type = 'train'
-        train_dataset = VideoDataset(dataset_root, dataset_type)
-        print(len(train_dataset))
-        print(train_dataset[10][0].shape)
-        print(torch.min(train_dataset[10][0]), torch.max(train_dataset[10][0]))
-        print(train_dataset[10][1])
+    dataset_type = 'valid'
+    # dataset_type = 'test'
+    test_dataset = VideoDataset(dataset_root, dataset_type, total_videos=256)
+    print(len(test_dataset))
+    print(test_dataset[10][0].shape)
+    print(torch.min(test_dataset[10][0]), torch.max(test_dataset[10][0]))
+    print(test_dataset[10][1])
+    
+    train_video = train_dataset[20][0]
+    test_video = test_dataset[20][0]
+    
+    train_video = dataset2video(train_video)
+    test_video = dataset2video(test_video)
+    
+    print(train_video.shape)
+    print(test_video.shape)
 
-        # dataset_type = 'valid'
-        dataset_type = 'test'
-        test_dataset = VideoDataset(dataset_root, dataset_type, total_videos=256)
-        print(len(test_dataset))
-        print(test_dataset[10][0].shape)
-        print(torch.min(test_dataset[10][0]), torch.max(test_dataset[10][0]))
-        print(test_dataset[10][1])
-        
-        train_video = train_dataset[20][0]
-        test_video = test_dataset[20][0]
-        
-        train_video = dataset2video(train_video)
-        test_video = dataset2video(test_video)
-        
-        print(train_video.shape)
-        print(test_video.shape)
+    media.show_video(rearrange(train_video, 't c h w -> t h w c').numpy(),fps = 20)
+    media.show_video(rearrange(test_video, 't c h w -> t h w c').numpy(),fps = 20)
 
-        media.show_video(rearrange(train_video, 't c h w -> t h w c').numpy(),fps = 20)
-        media.show_video(rearrange(test_video, 't c h w -> t h w c').numpy(),fps = 20)
+    """
+    479
+    torch.Size([40, 64, 64])
+    tensor(0.0627) tensor(0.8078)
+    10
 
-        """
-        479
-        torch.Size([40, 64, 64])
-        tensor(0.0627) tensor(0.8078)
-        10
+    or like
+    
+    256
+    torch.Size([30, 128, 128, 3])
+    tensor(0.) tensor(0.8863)
+    60
 
-        or like
-        
-        256
-        torch.Size([30, 128, 128, 3])
-        tensor(0.) tensor(0.8863)
-        60
-
-        """
+    """
 
 def check_num_workers():
     from time import time
@@ -172,8 +167,8 @@ def check_num_workers():
     print(f"num of CPU: {mp.cpu_count()}")
 
     # dataset_root = "/mnt/rhdd/zzc/data/video_prediction/KTH/processed/" # u8 - xs
-    # dataset_root = "/mnt/sda/hjy/kth/processed/" # u11 - xs
-    dataset_root = "/mnt/sda/hjy/kth/kth_h5/" # u16 - 0.72s
+    dataset_root = "/mnt/sda/hjy/kth/processed/" # u11 - xs
+    # dataset_root = "/mnt/sda/hjy/kth/kth_h5/" # u16 - 0.72s
     dataset_type = 'train'
     train_dataset = VideoDataset(dataset_root, dataset_type)
 
@@ -195,7 +190,7 @@ def check_num_workers():
             print("Finish with:{} second, num_workers={}".format(end - start, num_workers))
 
 if __name__ == "__main__":
-    # check_video_data_structure()
-    check_num_workers()
+    check_video_data_structure()
+    # check_num_workers()
     
 

@@ -11,7 +11,7 @@ python ./scripts/diffusion/run.py \
     --config ./config/kth64.yaml \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \
-    --postfix 0722
+    --postfix DM_Batch32_lr2e-4_c10p5
 
 # 预训练
 # python ./scripts/diffusion/run.py \

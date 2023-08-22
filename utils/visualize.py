@@ -10,7 +10,7 @@ from utils.misc import grid2fig
 from PIL import Image
 import imageio
 
-def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10, skip_pic_num=1, save_pic_num=8, grid_nrow=4, save_pic_row=True, save_gif=True, save_gif_grid=True):
+def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10, skip_pic_num=1, save_pic_num=8, select_method='top', grid_nrow=4, save_pic_row=True, save_gif=True, save_gif_grid=True):
     # 输入: origin [b t c h w] + result [b t c h w]
     
     # 数据判定
@@ -28,7 +28,12 @@ def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10,
         save_pic_num = min (len(origin), save_pic_num)
         print(f"video batchsize({len(origin)}) is too small, save_num is set to {save_pic_num}")
     
-    index = [int(i) for i in torch.linspace(0, len(origin)-1, save_pic_num)]
+    # 选择需要输出的视频索引（前n个或者均等取n个）
+    index = None
+    if select_method == 'top':
+        index = [int(i) for i in range(save_pic_num)]
+    elif select_method == 'linspace':
+        index = [int(i) for i in torch.linspace(0, len(origin)-1, save_pic_num)]
     
     print(index)
 
@@ -64,7 +69,7 @@ def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10,
 
             # result of cond_frame set to blank frame
             two_video = einops.rearrange(two_video, "b t c h w -> (b h) (t w) c")
-            save_path = os.path.join(save_pic_row_path, f"pic_row_{epoch_or_step_num}_sample{i}.png")
+            save_path = os.path.join(save_pic_row_path, f"pic_row_{epoch_or_step_num}_sample{index[i]}.png")
             # print(save_path)
             media.write_image(save_path, two_video.squeeze().numpy())
 
@@ -77,8 +82,8 @@ def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10,
         result_output = einops.rearrange(result, "b t c h w -> b t h w c")
 
         for i in range(save_pic_num):
-            media.write_video(os.path.join(save_gif_path, f"gif_{epoch_or_step_num}_origin{i}.gif"), origin_output[i].squeeze().numpy(), codec='gif', fps=20)
-            media.write_video(os.path.join(save_gif_path, f"gif_{epoch_or_step_num}_result{i}.gif"), result_output[i].squeeze().numpy(), codec='gif', fps=20)
+            media.write_video(os.path.join(save_gif_path, f"gif_{epoch_or_step_num}_origin{index[i]}.gif"), origin_output[i].squeeze().numpy(), codec='gif', fps=20)
+            media.write_video(os.path.join(save_gif_path, f"gif_{epoch_or_step_num}_result{index[i]}.gif"), result_output[i].squeeze().numpy(), codec='gif', fps=20)
 
     # 输出视频对比网格
     if save_gif_grid:

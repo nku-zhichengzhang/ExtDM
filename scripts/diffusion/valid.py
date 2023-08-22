@@ -82,6 +82,7 @@ if __name__ == "__main__":
         image_size=dataset_params['frame_shape'],
         num_frames=dataset_params['valid_params']['cond_frames'] + dataset_params['valid_params']['pred_frames'], 
         total_videos=dataset_params['valid_params']['total_videos'],
+        random_time=False,
     )
 
     valid_dataloader = DataLoader(
@@ -102,55 +103,62 @@ if __name__ == "__main__":
     # b t c h w [0-1]
     origin_videos = []
     result_videos = []
-
-    for i_iter, batch in enumerate(valid_dataloader):
-        if i_iter >= NUM_ITER:
-            break
-
-        real_vids, real_names = batch
-        # (b t c h)/(b t h w c) -> (b t c h w)
-        real_vids = dataset2videos(real_vids)
-        real_vids = rearrange(real_vids, 'b t c h w -> b c t h w')
-
-        origin_videos.append(real_vids)
-        pred_video = []
-
-        i_real_vids = real_vids[:,:,:cond_frames]
-
-        for i_autoreg in range(NUM_AUTOREG):
-
-            i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'][:,:,cond_frames:].clone().detach().cpu()
-            print(f'[{i_autoreg}/{NUM_AUTOREG}] i_pred_video: {i_pred_video.shape}')
-
-            pred_video.append(i_pred_video)
-
-            i_real_vids = i_pred_video[:,:,-cond_frames:]  # get last cond frames (-cond_frames)
-
-        pred_video = torch.cat(pred_video, dim=2)
-
-        res_video = torch.cat([real_vids[:, :, :cond_frames], pred_video[:, :, :total_pred_frames]], dim=2)
-        result_videos.append(res_video)
-
-    origin_videos = torch.cat(origin_videos)
-    result_videos = torch.cat(result_videos)
-
-    origin_videos = rearrange(origin_videos, 'b c t h w -> b t c h w')
-    result_videos = rearrange(result_videos, 'b c t h w -> b t c h w')
     
-    from utils.visualize import visualize
-    visualize(
-        save_path=f"{args.log_dir}/video_result",
-        origin=origin_videos,
-        result=result_videos,
-        save_pic_num=16,
-        grid_nrow=4,
-        save_gif_grid=True,
-        save_pic_row=True,
-        save_gif=False,
-        epoch_or_step_num=actual_step, 
-        cond_frame_num=cond_frames,
-    )
+    
+    if os.path.exists(f'./{args.log_dir}/origin.pt') and \
+        os.path.exists(f'./{args.log_dir}/result.pt'):
+            origin_videos = torch.load(f'./{args.log_dir}/origin.pt')
+            result_videos = torch.load(f'./{args.log_dir}/result.pt')
+    else:
+        for i_iter, batch in enumerate(valid_dataloader):
+            if i_iter >= NUM_ITER:
+                break
 
+            real_vids, real_names = batch
+            # (b t c h)/(b t h w c) -> (b t c h w)
+            real_vids = dataset2videos(real_vids)
+            real_vids = rearrange(real_vids, 'b t c h w -> b c t h w')
+
+            origin_videos.append(real_vids)
+            pred_video = []
+
+            i_real_vids = real_vids[:,:,:cond_frames]
+            
+            for i_autoreg in range(NUM_AUTOREG):
+                i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'].clone().detach().cpu()
+                print(f'[{i_autoreg}/{NUM_AUTOREG}] i_pred_video: {i_pred_video[:,:,-pred_frames:].shape}')
+                pred_video.append(i_pred_video[:,:,-pred_frames:])
+                i_real_vids = i_pred_video[:,:,-cond_frames:]
+
+            pred_video = torch.cat(pred_video, dim=2)
+
+            res_video = torch.cat([real_vids[:, :, :cond_frames], pred_video[:, :, :total_pred_frames]], dim=2)
+            result_videos.append(res_video)
+
+        origin_videos = torch.cat(origin_videos)
+        result_videos = torch.cat(result_videos)
+
+        origin_videos = rearrange(origin_videos, 'b c t h w -> b t c h w')
+        result_videos = rearrange(result_videos, 'b c t h w -> b t c h w')
+
+        torch.save(origin_videos, f'./{args.log_dir}/origin.pt')
+        torch.save(result_videos, f'./{args.log_dir}/result.pt')
+        
+        from utils.visualize import visualize
+        visualize(
+            save_path=f"{args.log_dir}/result",
+            origin=origin_videos,
+            result=result_videos,
+            save_pic_num=10,
+            select_method='top',
+            grid_nrow=8,
+            save_gif_grid=True,
+            save_pic_row=True,
+            save_gif=True,
+            epoch_or_step_num=actual_step, 
+            cond_frame_num=cond_frames,
+        )
+    
     from metrics.calculate_fvd import calculate_fvd,calculate_fvd1
     from metrics.calculate_psnr import calculate_psnr,calculate_psnr1
     from metrics.calculate_ssim import calculate_ssim,calculate_ssim1

@@ -1,5 +1,10 @@
 # sh ./scripts/diffusion/valid_diffusion_kth.sh
 
+# FLOWCKPT=/mnt/rhdd/zzc/data/video_prediction/flow_pretrained # u8
+FLOWCKPT=/mnt/sda/hjy/flow_pretrained # u11
+# FLOWCKPT=/mnt/sda/hjy/flow_pretrained # u16
+# FLOWCKPT=/home/u009079/zzc/data/vidp/flow_pretrained # hpc_403
+
 # python ./scripts/diffusion/valid.py \
 #     --random-seed 1234 \
 #     --config ./config/kth64.yaml \
@@ -11,9 +16,9 @@
 python ./scripts/diffusion/valid.py \
     --random-seed 1000 \
     --config ./config/kth64.yaml \
-    --checkpoint ./logs_training/diffusion/kth64_not_onlyflow/snapshots/flowdiff.pth \
-    --flowae_checkpoint /mnt/sda/hjy/flow_pretrained/kth64/snapshots/RegionMM.pth \
-    --log_dir ./logs_validation/diffusion/kth64_not_onlyflow \
+    --checkpoint ./logs_training/diffusion/kth64_DM_Batch32_lr2e-4_c10p5/snapshots/flowdiff.pth \
+    --flowae_checkpoint $FLOWCKPT/kth64/snapshots/RegionMM.pth \
+    --log_dir ./logs_validation/diffusion/kth64_DM_Batch32_lr2e-4_c10p5 \
     --device_ids "0"
 
 # python ./scripts/diffusion/valid.py \
