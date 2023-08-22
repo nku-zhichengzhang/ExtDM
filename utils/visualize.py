@@ -28,12 +28,15 @@ def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10,
         save_pic_num = min (len(origin), save_pic_num)
         print(f"video batchsize({len(origin)}) is too small, save_num is set to {save_pic_num}")
     
-    # 选择需要输出的视频索引（前n个或者均等取n个）
+    # 选择需要输出的视频索引（前n个、均等取n个、直接根据索引提取n个）
     index = None
     if select_method == 'top':
         index = [int(i) for i in range(save_pic_num)]
     elif select_method == 'linspace':
         index = [int(i) for i in torch.linspace(0, len(origin)-1, save_pic_num)]
+    elif isinstance(select_method, list):
+        assert len(list) == save_pic_num
+        index = [int(i) for i in select_method]
     
     print(index)
 
