@@ -8,8 +8,8 @@
 experiment_name: smmnist64
 
 dataset_params:
-  root_dir: /mnt/rhdd/zzc/data/video_prediction/SMMNIST/SMMNIST_h5 # u8
-  # root_dir: /mnt/sda/hjy/SMMNIST/SMMNIST_h5 # u11
+  # root_dir: /mnt/rhdd/zzc/data/video_prediction/SMMNIST/SMMNIST_h5 # u8
+  root_dir: /mnt/sda/hjy/SMMNIST/SMMNIST_h5 # u11
   # root_dir: /mnt/sda/hjy/smmnist/smmnist_h5 # u16
   # root_dir: /home/u009079/zzc/data/vidp/SMMNIST/SMMNIST_h5 # hpc_403
   frame_shape: 64
@@ -27,7 +27,7 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 10
-    pred_frames: 10
+    pred_frames: 4
   valid_params:
     total_videos: 256
     type: test
@@ -98,7 +98,7 @@ diffusion_params:
     loss_type: 'l2'
   train_params:
     max_epochs: 108
-    num_repeats: 1
+    num_repeats: 2
     scheduler_param:
       milestones: [70000, 120000]
       gamma: 0.5

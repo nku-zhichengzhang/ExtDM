@@ -1,8 +1,13 @@
 # sh ./scripts/diffusion/train_diffusion_kth.sh
 
+# FLOWCKPT=/mnt/rhdd/zzc/data/video_prediction/flow_pretrained # u8
+FLOWCKPT=/mnt/sda/hjy/flow_pretrained # u11
+# FLOWCKPT=/mnt/sda/hjy/flow_pretrained # u16
+# FLOWCKPT=/home/u009079/zzc/data/vidp/flow_pretrained # hpc_403
+
 # 从头训练
 python ./scripts/diffusion/run.py \
-    --flowae_checkpoint /mnt/sda/hjy/flow_pretrained/kth64/snapshots/RegionMM.pth \
+    --flowae_checkpoint $FLOWCKPT/kth64/snapshots/RegionMM.pth \
     --config ./config/kth64.yaml \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \

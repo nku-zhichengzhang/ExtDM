@@ -1,6 +1,7 @@
-# CUDA_VISIBLE_DEVICES=0,1 sh ./scripts/diffusion/train_diffusion_smmnist.sh
+# sh ./scripts/diffusion/train_diffusion_smmnist.sh
 
-FLOWCKPT=/mnt/rhdd/zzc/data/video_prediction/flow_pretrained # u8
+# FLOWCKPT=/mnt/rhdd/zzc/data/video_prediction/flow_pretrained # u8
+FLOWCKPT=/mnt/sda/hjy/flow_pretrained # u11
 # FLOWCKPT=/mnt/sda/hjy/flow_pretrained # u16
 # FLOWCKPT=/home/u009079/zzc/data/vidp/flow_pretrained # hpc_403
 
@@ -11,7 +12,7 @@ python ./scripts/diffusion/run.py \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \
     --random-seed 1234 \
-    --postfix DM_Batch32_lr2e-4_c10p10
+    --postfix DM_Batch32_lr2e-4_c10p4
 
 # 预训练
 # python ./scripts/diffusion/run.py \
