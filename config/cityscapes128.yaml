@@ -8,9 +8,7 @@
 experiment_name: cityscapes128
 
 dataset_params:
-  root_dir: /mnt/sda/hjy/cityscapes/cityscapes_processed/ # u8
-  # root_dir: # u16
-  # root_dir: # hpc_403
+  root_dir: /mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5 # u8
   frame_shape: 128
   augmentation_params:
     flip_param:
@@ -26,7 +24,7 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 2
-    pred_frames: 7
+    pred_frames: 2 
   valid_params:
     total_videos: 256
     type: val
@@ -97,13 +95,13 @@ diffusion_params:
     loss_type: 'l2'
   train_params:
     max_epochs: 108
-    num_repeats: 20
+    num_repeats: 40
     scheduler_param:
       milestones: [70000, 120000]
       gamma: 0.5
-    lr: 2.0e-4
-    batch_size: 32
-    valid_batch_size: 128
+    lr: 4.0e-4
+    batch_size: 64
+    valid_batch_size: 256
     dataloader_workers: 8
     print_freq: 100
     save_img_freq: 1000

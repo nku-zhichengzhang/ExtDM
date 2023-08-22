@@ -1,12 +1,16 @@
 # sh ./scripts/diffusion/train_diffusion_cityscapes.sh
 
+FLOWCKPT=/mnt/rhdd/zzc/data/video_prediction/flow_pretrained # u8
+# FLOWCKPT=/mnt/sda/hjy/flow_pretrained # u16
+# FLOWCKPT=/home/u009079/zzc/data/vidp/flow_pretrained # hpc_403
+
 # 从头训练
 python ./scripts/diffusion/run.py \
-    --flowae_checkpoint /mnt/sda/hjy/flow_pretrained/cityscapes128_perspective/snapshots/RegionMM.pth \
+    --flowae_checkpoint $FLOWCKPT/cityscapes128_perspective/snapshots/RegionMM.pth \
     --config ./config/cityscapes128.yaml \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \
-    --postfix baseDM_wRefFea_wcond_woOutConv_Batch32_lr2e-4_c2p7
+    --postfix DM_Batch64_lr4e-4_c2p2
 
 # 预训练
 # python ./scripts/diffusion/run.py \
