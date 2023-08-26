@@ -8,7 +8,8 @@
 experiment_name: kth64
 
 dataset_params:
-  root_dir: /mnt/sda/hjy/kth/processed # u11
+  root_dir: /mnt/rhdd/zzc/data/video_prediction/KTH/processed/ # u8
+  # root_dir: /mnt/sda/hjy/kth/processed # u11
   frame_shape: 64
   augmentation_params:
     flip_param:
@@ -71,7 +72,7 @@ flow_params:
     scheduler_param:
       milestones: [100000, 200000]
       gamma: 0.5
-    lr: 2.0e-4
+    lr: 4.0e-4
     batch_size: 256
     valid_batch_size: 256
     dataloader_workers: 8
