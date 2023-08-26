@@ -81,8 +81,8 @@ def calculate_lpips1(videos1, videos2, device):
     videos1 = trans(videos1)
     videos2 = trans(videos2)
     lpips_results = []
-    for video_num in range(videos1.shape[0]):
-    # for video_num in tqdm(range(videos1.shape[0])):
+    # for video_num in range(videos1.shape[0]):
+    for video_num in tqdm(range(videos1.shape[0])):
         video1 = videos1[video_num]
         video2 = videos2[video_num]
         lpips_results_of_a_video = []

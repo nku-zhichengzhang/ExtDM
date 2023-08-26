@@ -72,8 +72,8 @@ def calculate_psnr1(videos1, videos2):
     videos1 = trans(videos1)
     videos2 = trans(videos2)
     psnr_results = []
-    for video_num in range(videos1.shape[0]):
-    # for video_num in tqdm(range(videos1.shape[0])):
+    # for video_num in range(videos1.shape[0]):
+    for video_num in tqdm(range(videos1.shape[0])):
         video1 = videos1[video_num]
         video2 = videos2[video_num]
         psnr_results_of_a_video = []

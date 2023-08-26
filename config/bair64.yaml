@@ -113,7 +113,6 @@ diffusion_params:
     save_vid_freq: 1000
     update_ckpt_freq: 1000
     save_ckpt_freq: 5000
-    sample_vid_freq: 1000 # useless
 
 visualizer_params:
   kp_size: 2

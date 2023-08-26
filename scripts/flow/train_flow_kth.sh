@@ -6,7 +6,7 @@ python ./scripts/flow/run.py \
     --config ./config/kth64.yaml \
     --log_dir ./logs_training/flow \
     --device_ids 0,1 \
-    --postfix test_1
+    --postfix FlowAE_Batch64_lr2e-4_test
 
 # 预训练
 # python ./scripts/flow/run.py \

@@ -3,7 +3,6 @@ import os.path
 import numpy as np
 import math
 import sys
-# sys.path.append('/home/ubuntu11/zzc/code/videoprediction/EDM')
 
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
@@ -110,13 +109,7 @@ def train(
     else:
         print("NO checkpoint found!")
 
-    # 两种策略
-    # (1) 按 epoch, 按倍数减少
     scheduler = MultiStepLR(optimizer, last_epoch=start_step - 1, **train_params['scheduler_param'])
-
-    # (2) 按 step, warmup 增加
-    # linear_scheduler = LambdaLinearScheduler(**train_params['scheduler_param'])
-    # scheduler = LambdaLR(optimizer, lr_lambda=linear_scheduler.schedule)
     
     train_dataloader = DataLoader(
         train_dataset,
@@ -269,6 +262,9 @@ def train(
                               + '_' + format(real_names[0], "06d") + ".png"
                 new_im_file = os.path.join(config["imgshots"], new_im_name)
                 new_im.save(new_im_file)
+                wandb.log({
+                    "save_img": wandb.Image(new_im)
+                })
 
             if actual_step % train_params['save_vid_freq'] == 0:
                 print("saving video...")
@@ -428,26 +424,28 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
     origin_videos = rearrange(origin_videos, 'b c t h w -> b t c h w')
     result_videos = rearrange(result_videos, 'b c t h w -> b t c h w')
     
-    from utils.visualize import visualize
-    visualize(
-        save_path=f"{log_dir}/video_result",
-        origin=origin_videos,
-        result=result_videos,
-        save_pic_num=8,
-        grid_nrow=4,
-        save_gif_grid=True,
-        save_pic_row=True,
-        save_gif=False,
-        epoch_or_step_num=actual_step, 
-        cond_frame_num=cond_frames,
-    )
+    # from utils.visualize import visualize
+    # visualize(
+    #     save_path=f"{log_dir}/video_result",
+    #     origin=origin_videos,
+    #     result=result_videos,
+    #     save_pic_num=8,
+    #     select_method='linspace',
+    #     grid_nrow=4,
+    #     save_gif_grid=False,
+    #     save_gif=True,
+    #     save_pic_row=False,
+    #     save_pic=False,
+    #     epoch_or_step_num=actual_step, 
+    #     cond_frame_num=cond_frames,
+    # )
 
     from metrics.calculate_fvd import calculate_fvd,calculate_fvd1
     from metrics.calculate_psnr import calculate_psnr,calculate_psnr1
     from metrics.calculate_ssim import calculate_ssim,calculate_ssim1
     from metrics.calculate_lpips import calculate_lpips,calculate_lpips1
     
-    fvd = calculate_fvd1(origin_videos, result_videos, torch.device("cuda"), mini_bs=2)
+    fvd = calculate_fvd1(origin_videos, result_videos, torch.device("cuda"), mini_bs=16)
     videos1 = origin_videos[:, cond_frames:cond_frames + total_pred_frames]
     videos2 = result_videos[:, cond_frames:cond_frames + total_pred_frames]
     ssim = calculate_ssim1(videos1, videos2)[0]

@@ -105,8 +105,8 @@ def train(
                 optimizer.load_state_dict(ckpt['optimizer'])
             except:
                 optimizer.load_state_dict(ckpt['optimizer'].state_dict())
-
-    scheduler = MultiStepLR(optimizer, train_params['epoch_milestones'], gamma=0.1, last_epoch=start_epoch - 1)
+    scheduler = MultiStepLR(optimizer, last_epoch=start_step - 1, **train_params['scheduler_param'])
+    
     if 'num_repeats' in train_params or train_params['num_repeats'] != 1:
         train_dataset = DatasetRepeater(train_dataset, train_params['num_repeats'])
 
@@ -240,10 +240,10 @@ def train(
                 break
 
             cnt += 1
-
-        scheduler.step()
+            # 按 step 进行 warmup 策略
+            scheduler.step()
+            
         epoch_cnt += 1
-        # print lr
         print("epoch %d, lr= %.7f" % (epoch_cnt, optimizer.param_groups[0]["lr"]))
 
     print('save the final model...')
@@ -290,7 +290,7 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
 
         total_vids, video_names = batch
         # (b t c h)/(b t h w c) -> (b t c h w)
-        real_vids = dataset2videos(real_vids)
+        total_vids = dataset2videos(total_vids)
         origin_videos.append(total_vids)
 
         # real_vids 
