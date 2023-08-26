@@ -66,7 +66,7 @@ flow_params:
         use_covar_heatmap: True
         estimate_occlusion_map: True
   train_params:
-    max_epochs: 1050
+    max_epochs: 1070
     num_repeats: 100
     scheduler_param:
       milestones: [100000, 200000]
