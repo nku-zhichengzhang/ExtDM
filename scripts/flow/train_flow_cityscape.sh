@@ -4,11 +4,11 @@ CKPTPATH=/mnt/sda/hjy/pth
 
 # 从头训练
 python ./scripts/flow/run.py \
-    --checkpoint $CKPTPATH/taichi256.pth \
+    --checkpoint $CKPTPATH/ted-youtube384.pth \
     --config ./config/cityscapes128.yaml \
     --log_dir ./logs_training/flow \
     --device_ids 0,1 \
-    --postfix FlowAE_Batch128_lr2e-4_Region10_affine
+    --postfix FlowAE_Batch128_lr2e-4_Region20_affine
 
 # 从0训练
 # python ./scripts/flow/run.py \
