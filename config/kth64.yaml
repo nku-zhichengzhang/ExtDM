@@ -70,15 +70,15 @@ flow_params:
     max_epochs: 1070
     num_repeats: 100
     scheduler_param:
-      milestones: [100000, 200000]
+      milestones: [20000, 40000]
       gamma: 0.5
     lr: 4.0e-4
     batch_size: 256
     valid_batch_size: 256
     dataloader_workers: 8
-    print_freq: 200
-    save_img_freq: 2000
-    update_ckpt_freq: 2000
+    print_freq: 500
+    save_img_freq: 2500
+    update_ckpt_freq: 2500
     save_ckpt_freq: 10000
     scales: [1, 0.5, 0.25]
     transform_params:
