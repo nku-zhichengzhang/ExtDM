@@ -62,12 +62,12 @@ def grid2fig(warped_grid, grid_size=32, img_size=256):
     return out
 
 
-def flow2fig(warped_grid, id_grid, grid_size=32, img_size=128):
-    # h_range = torch.linspace(-1, 1, grid_size)
-    # w_range = torch.linspace(-1, 1, grid_size)
-    # id_grid = torch.stack(torch.meshgrid([h_range, w_range]), -1).flip(2)
-    warped_flow = warped_grid - id_grid
-    img = flow_vis.flow_to_color(warped_flow)
+def flow2fig(warped_grid, grid_size=32, img_size=128):
+    h_range = torch.linspace(-1, 1, grid_size)
+    w_range = torch.linspace(-1, 1, grid_size)
+    id_grid = torch.stack(torch.meshgrid([h_range, w_range]), -1).flip(2)
+    warped_grid -= id_grid.numpy()
+    img = flow_vis.flow_to_color(warped_grid)
     img = cv2.resize(img, (img_size, img_size), interpolation=cv2.INTER_AREA)
     return img
 

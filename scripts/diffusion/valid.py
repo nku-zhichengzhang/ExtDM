@@ -50,9 +50,6 @@ if __name__ == "__main__":
 
     MEAN = (0.0, 0.0, 0.0)
     
-    ckpt_dir = os.path.join(args.log_dir, "flowae_result")
-    os.makedirs(ckpt_dir, exist_ok=True)
-
     with open(args.config) as f:
         config = yaml.safe_load(f)
     
@@ -74,7 +71,7 @@ if __name__ == "__main__":
     total_pred_frames = dataset_params['valid_params']['pred_frames']
     pred_frames = dataset_params['train_params']['pred_frames']
 
-    json_path = os.path.join(ckpt_dir, "loss%d.json" % (dataset_params['valid_params']['total_videos']))
+    json_path = os.path.join("loss%d.json" % (dataset_params['valid_params']['total_videos']))
         
     valid_dataset = VideoDataset(
         data_dir=dataset_params['root_dir'],
@@ -141,6 +138,7 @@ if __name__ == "__main__":
         origin_videos = rearrange(origin_videos, 'b c t h w -> b t c h w')
         result_videos = rearrange(result_videos, 'b c t h w -> b t c h w')
 
+        os.makedirs(f'./{args.log_dir}', exist_ok=True)
         torch.save(origin_videos, f'./{args.log_dir}/origin.pt')
         torch.save(result_videos, f'./{args.log_dir}/result.pt')
         
@@ -149,9 +147,9 @@ if __name__ == "__main__":
             save_path=f"{args.log_dir}/result",
             origin=origin_videos,
             result=result_videos,
-            save_pic_num=10,
+            save_pic_num=20,
             select_method='top',
-            grid_nrow=8,
+            grid_nrow=4,
             save_gif_grid=True,
             save_pic_row=True,
             save_gif=True,
@@ -164,44 +162,21 @@ if __name__ == "__main__":
     from metrics.calculate_ssim import calculate_ssim,calculate_ssim1
     from metrics.calculate_lpips import calculate_lpips,calculate_lpips1
     
-    # fvd = calculate_fvd1(origin_videos, result_videos, torch.device("cuda"), mini_bs=2)
-    # videos1 = origin_videos[:, cond_frames:cond_frames + pred_frames]
-    # videos2 = result_videos[:, cond_frames:cond_frames + pred_frames]
-    # ssim = calculate_ssim1(videos1, videos2)[0]
-    # psnr = calculate_psnr1(videos1, videos2)[0]
-    # lpips = calculate_lpips1(videos1, videos2, torch.device("cuda"))[0]
-    
-    # print("[fvd    ]", fvd)
-    # print("[ssim   ]", ssim)
-    # print("[psnr   ]", psnr)
-    # print("[lpips  ]", lpips)
-    
-    # res_dict = {
-    #     "fvd": fvd,
-    #     "ssim": ssim,
-    #     "psnr": psnr,
-    #     "lpips": lpips
-    # }
-    
     videos1 = origin_videos
     videos2 = result_videos
     
-    CALCULATE_PER_FRAME = 1
-    CALCULATE_FINAL = False
+    fvd = calculate_fvd1(videos1, videos2, torch.device("cuda"), mini_bs=16)
+    videos1 = videos1[:, cond_frames:cond_frames + total_pred_frames]
+    videos2 = videos2[:, cond_frames:cond_frames + total_pred_frames]
+    ssim = calculate_ssim1(videos1, videos2)[0]
+    psnr = calculate_psnr1(videos1, videos2)[0]
+    lpips = calculate_lpips1(videos1, videos2, torch.device("cuda"))[0]
     
-    import json
-    res_dict = {}
-    res_dict['fvd']   = calculate_fvd  (videos1, videos2, CALCULATE_PER_FRAME, CALCULATE_FINAL, torch.device("cuda"))
-    
-    videos1 = origin_videos[:, cond_frames:cond_frames + total_pred_frames]
-    videos2 = result_videos[:, cond_frames:cond_frames + total_pred_frames]
-    
-    res_dict['ssim']  = calculate_ssim (videos1, videos2, CALCULATE_PER_FRAME, CALCULATE_FINAL)
-    res_dict['psnr']  = calculate_psnr (videos1, videos2, CALCULATE_PER_FRAME, CALCULATE_FINAL)
-    res_dict['lpips'] = calculate_lpips(videos1, videos2, CALCULATE_PER_FRAME, CALCULATE_FINAL, torch.device("cuda"))
-    
-    with open(json_path, "w") as f:
-        json.dump(res_dict, f)
+    print("[fvd    ]", fvd)
+    print("[ssim   ]", ssim)
+    print("[psnr   ]", psnr)
+    print("[lpips  ]", lpips)
+
 
     end = timeit.default_timer()
     print(end - start, 'seconds')

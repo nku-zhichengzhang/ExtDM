@@ -17,7 +17,7 @@ def img_psnr(img1, img2):
 def trans(x):
     return x
 
-def calculate_psnr(videos1, videos2, calculate_per_frame, calculate_final):
+def calculate_psnr(videos1, videos2):
     print("calculate_psnr...")
 
     # videos [batch_size, timestamps, channel, h, w]
@@ -41,8 +41,8 @@ def calculate_psnr(videos1, videos2, calculate_per_frame, calculate_final):
             # img [timestamps[x], channel, h, w]
             # img [channel, h, w] numpy
 
-            img1 = video1[clip_timestamp].numpy()
-            img2 = video2[clip_timestamp].numpy()
+            img1 = video1[clip_timestamp].cpu().numpy()
+            img2 = video2[clip_timestamp].cpu().numpy()
             
             # calculate psnr of a video
             psnr_results_of_a_video.append(img_psnr(img1, img2))
@@ -54,18 +54,13 @@ def calculate_psnr(videos1, videos2, calculate_per_frame, calculate_final):
     psnr = {}
     psnr_std = {}
 
-    for clip_timestamp in range(calculate_per_frame, len(video1)+1, calculate_per_frame):
-        psnr[f'avg[:{clip_timestamp}]'] = np.mean(psnr_results[:,:clip_timestamp])
-        psnr_std[f'std[:{clip_timestamp}]'] = np.std(psnr_results[:,:clip_timestamp])
-
-    if calculate_final:
-        psnr['final'] = np.mean(psnr_results)
-        psnr_std['final'] = np.std(psnr_results)
+    for clip_timestamp in range(len(video1)):
+        psnr[f'avg[{clip_timestamp}]'] = np.mean(psnr_results[:,clip_timestamp])
+        psnr_std[f'std[{clip_timestamp}]'] = np.std(psnr_results[:,clip_timestamp])
     
     result = {
         "psnr": psnr,
         "psnr_std": psnr_std,
-        "psnr_per_frame": calculate_per_frame,
         "psnr_video_setting": video1.shape,
         "psnr_video_setting_name": "time, channel, heigth, width",
     }
@@ -77,8 +72,8 @@ def calculate_psnr1(videos1, videos2):
     videos1 = trans(videos1)
     videos2 = trans(videos2)
     psnr_results = []
-    # for video_num in range(videos1.shape[0]):
-    for video_num in tqdm(range(videos1.shape[0])):
+    for video_num in range(videos1.shape[0]):
+    # for video_num in tqdm(range(videos1.shape[0])):
         video1 = videos1[video_num]
         video2 = videos2[video_num]
         psnr_results_of_a_video = []

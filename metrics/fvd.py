@@ -282,6 +282,9 @@ def frechet_distance(feats_fake: np.ndarray, feats_real: np.ndarray) -> float:
     mu_gen, sigma_gen = compute_stats(feats_fake)
     mu_real, sigma_real = compute_stats(feats_real)
     m = np.square(mu_gen - mu_real).sum()
-    s, _ = sqrtm(np.dot(sigma_gen, sigma_real), disp=False) # pylint: disable=no-member
-    fid = np.real(m + np.trace(sigma_gen + sigma_real - s * 2))
+    if feats_fake.shape[0]>1:
+        s, _ = sqrtm(np.dot(sigma_gen, sigma_real), disp=False) # pylint: disable=no-member
+        fid = np.real(m + np.trace(sigma_gen + sigma_real - s * 2))
+    else:
+        fid = np.real(m)
     return float(fid)

@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
         total_vids, video_names = batch
         # (b t c h)/(b t h w c) -> (b t c h w)
-        real_vids = dataset2videos(real_vids)
+        total_vids = dataset2videos(total_vids)
         origin_videos.append(total_vids)
 
         # real_vids 

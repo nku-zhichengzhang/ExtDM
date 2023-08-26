@@ -448,8 +448,8 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
     from metrics.calculate_lpips import calculate_lpips,calculate_lpips1
     
     fvd = calculate_fvd1(origin_videos, result_videos, torch.device("cuda"), mini_bs=2)
-    videos1 = origin_videos[:, cond_frames:cond_frames + pred_frames]
-    videos2 = result_videos[:, cond_frames:cond_frames + pred_frames]
+    videos1 = origin_videos[:, cond_frames:cond_frames + total_pred_frames]
+    videos2 = result_videos[:, cond_frames:cond_frames + total_pred_frames]
     ssim = calculate_ssim1(videos1, videos2)[0]
     psnr = calculate_psnr1(videos1, videos2)[0]
     lpips = calculate_lpips1(videos1, videos2, torch.device("cuda"))[0]

@@ -10,7 +10,7 @@ from utils.misc import grid2fig
 from PIL import Image
 import imageio
 
-def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10, skip_pic_num=1, save_pic_num=8, select_method='top', grid_nrow=4, save_pic_row=True, save_gif=True, save_gif_grid=True):
+def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10, skip_pic_num=1, save_pic_num=8, select_method='top', grid_nrow=4, save_pic=True, save_pic_row=True, save_gif=True, save_gif_grid=True):
     # 输入: origin [b t c h w] + result [b t c h w]
     
     # 数据判定
@@ -35,14 +35,32 @@ def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10,
     elif select_method == 'linspace':
         index = [int(i) for i in torch.linspace(0, len(origin)-1, save_pic_num)]
     elif isinstance(select_method, list):
-        assert len(list) == save_pic_num
+        assert len(select_method) == save_pic_num
         index = [int(i) for i in select_method]
     
     print(index)
 
     origin = origin[index].cpu()
     result = result[index].cpu()
-
+    
+    # 输出视频单帧
+    if save_pic:
+        save_pic_path = os.path.join(epoch_or_step_save_path, "pic")
+        os.makedirs(save_pic_path, exist_ok=True)
+        
+        origin_output = einops.rearrange(origin, "b t c h w -> b t h w c")
+        result_output = einops.rearrange(result, "b t c h w -> b t h w c")
+        
+        for i in range(save_pic_num):
+            for t in range(origin.shape[1]):
+                save_path = os.path.join(save_pic_path, str(index[i]), "origin")
+                os.makedirs(save_path, exist_ok=True)
+                media.write_image(os.path.join(save_path, f"pic_origin_{index[i]}_{t}.png"), origin_output[i, t].squeeze().numpy())
+                save_path = os.path.join(save_pic_path, str(index[i]), "result")
+                os.makedirs(save_path, exist_ok=True)
+                media.write_image(os.path.join(save_path, f"pic_result_{index[i]}_{t}.png"), result_output[i, t].squeeze().numpy())
+        
+        
     # 输出视频分解对比图
     if save_pic_row:
         save_pic_row_path = os.path.join(epoch_or_step_save_path, "pic_row")
@@ -56,25 +74,12 @@ def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10,
 
             two_video = two_video[:,::skip_pic_num]
 
-            # # two_video       [2 t c h w]
-            # # two_video_cond  [2 :cond c h w]
-            # # two_video_pred  [2 cond::skip t c h w]
-            # # print(two_video.shape)
-
-            # two_video_cond           = two_video[:,:cond_frame_num]
-            # two_video_pred_with_skip = two_video[:,cond_frame_num::skip_pic_num]
-
-            # two_video_with_skip = torch.cat([two_video_cond, two_video_pred_with_skip], dim=1)
-
-            # # print(two_video_with_skip.shape)
-
-
-
             # result of cond_frame set to blank frame
             two_video = einops.rearrange(two_video, "b t c h w -> (b h) (t w) c")
-            save_path = os.path.join(save_pic_row_path, f"pic_row_{epoch_or_step_num}_sample{index[i]}.png")
+            save_path = save_pic_row_path
+            # os.makedirs(save_path, exist_ok=True)
             # print(save_path)
-            media.write_image(save_path, two_video.squeeze().numpy())
+            media.write_image(os.path.join(save_path, f"pic_row_{index[i]}.png"), two_video.squeeze().numpy())
 
     # 输出视频
     if save_gif:
@@ -85,8 +90,12 @@ def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10,
         result_output = einops.rearrange(result, "b t c h w -> b t h w c")
 
         for i in range(save_pic_num):
-            media.write_video(os.path.join(save_gif_path, f"gif_{epoch_or_step_num}_origin{index[i]}.gif"), origin_output[i].squeeze().numpy(), codec='gif', fps=20)
-            media.write_video(os.path.join(save_gif_path, f"gif_{epoch_or_step_num}_result{index[i]}.gif"), result_output[i].squeeze().numpy(), codec='gif', fps=20)
+            save_path = os.path.join(save_gif_path, str(index[i]))
+            os.makedirs(save_path, exist_ok=True)
+            media.write_video(os.path.join(save_path, f"gif_origin_{index[i]}.gif"), origin_output[i].squeeze().numpy(), codec='gif', fps=20)
+            save_path = os.path.join(save_gif_path, str(index[i]))
+            os.makedirs(save_path, exist_ok=True)
+            media.write_video(os.path.join(save_path, f"gif_result_{index[i]}.gif"), result_output[i].squeeze().numpy(), codec='gif', fps=20)
 
     # 输出视频对比网格
     if save_gif_grid:
@@ -146,7 +155,9 @@ def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10,
         final_grids = torch.stack(final_grids)
         final_grids = einops.rearrange(final_grids, "t c h w -> t h w c")
 
-        media.write_video(os.path.join(save_gif_grid_path, f"save_gif_grid_sample.gif"), final_grids.numpy(), codec='gif', fps=20)
+        save_path = save_gif_grid_path
+        # os.makedirs(save_path, exist_ok=True)
+        media.write_video(os.path.join(save_path, f"gif_grid.gif"), final_grids.numpy(), codec='gif', fps=20)
 
 
 

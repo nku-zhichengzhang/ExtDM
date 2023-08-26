@@ -3,3 +3,4 @@ logs_validation/*
 __pycache__
 wandb
 slurm-*.out
+flow_output

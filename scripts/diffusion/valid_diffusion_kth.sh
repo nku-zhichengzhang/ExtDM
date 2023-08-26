@@ -14,11 +14,11 @@ FLOWCKPT=/mnt/sda/hjy/flow_pretrained # u11
 #     --device_ids "0"
 
 python ./scripts/diffusion/valid.py \
-    --random-seed 1000 \
-    --config ./config/kth64.yaml \
-    --checkpoint ./logs_training/diffusion/kth64_DM_Batch32_lr2e-4_c10p5/snapshots/flowdiff.pth \
+    --random-seed 1234 \
     --flowae_checkpoint $FLOWCKPT/kth64/snapshots/RegionMM.pth \
-    --log_dir ./logs_validation/diffusion/kth64_DM_Batch32_lr2e-4_c10p5 \
+    --config ./logs_training/diffusion/kth64_DM_Batch32_lr2e-4_c10p5/kth64.yaml \
+    --checkpoint ./logs_training/diffusion/kth64_DM_Batch32_lr2e-4_c10p5/snapshots/flowdiff.pth \
+    --log_dir ./logs_validation/diffusion/kth64_DM_Batch32_lr2e-4_c10p5_0825_random \
     --device_ids "0"
 
 # python ./scripts/diffusion/valid.py \

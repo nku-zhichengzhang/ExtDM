@@ -22,7 +22,7 @@ def trans(x):
 
     return x
 
-def calculate_lpips(videos1, videos2, calculate_per_frame, calculate_final, device):
+def calculate_lpips(videos1, videos2, device):
     # image should be RGB, IMPORTANT: normalized to [-1,1]
     print("calculate_lpips...")
 
@@ -63,18 +63,13 @@ def calculate_lpips(videos1, videos2, calculate_per_frame, calculate_final, devi
     lpips = {}
     lpips_std = {}
 
-    for clip_timestamp in range(calculate_per_frame, len(video1)+1, calculate_per_frame):
-        lpips[f'avg[:{clip_timestamp}]'] = np.mean(lpips_results[:,:clip_timestamp])
-        lpips_std[f'std[:{clip_timestamp}]'] = np.std(lpips_results[:,:clip_timestamp])
-
-    if calculate_final:
-        lpips['final'] = np.mean(lpips_results)
-        lpips_std['final'] = np.std(lpips_results)
+    for clip_timestamp in range(len(video1)):
+        lpips[f'avg[{clip_timestamp}]'] = np.mean(lpips_results[:,clip_timestamp])
+        lpips_std[f'std[{clip_timestamp}]'] = np.std(lpips_results[:,clip_timestamp])
 
     result = {
         "lpips": lpips,
         "lpips_std": lpips_std,
-        "lpips_per_frame": calculate_per_frame,
         "lpips_video_setting": video1.shape,
         "lpips_video_setting_name": "time, channel, heigth, width",
     }
@@ -86,8 +81,8 @@ def calculate_lpips1(videos1, videos2, device):
     videos1 = trans(videos1)
     videos2 = trans(videos2)
     lpips_results = []
-    # for video_num in range(videos1.shape[0]):
-    for video_num in tqdm(range(videos1.shape[0])):
+    for video_num in range(videos1.shape[0]):
+    # for video_num in tqdm(range(videos1.shape[0])):
         video1 = videos1[video_num]
         video2 = videos2[video_num]
         lpips_results_of_a_video = []

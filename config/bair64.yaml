@@ -9,7 +9,7 @@ experiment_name: bair
 
 dataset_params:
   # root_dir:  /mnt/rhdd/zzc/data/video_prediction/BAIR/BAIR_h5/ # u08
-  # root_dir:  /mnt/sda/hjy/bair/mcvd-pytorch/datasets/BAIR/BAIR_h5 # u11
+  # root_dir:  /mnt/sda/hjy/bair/BAIR_h5/ # u11
   root_dir: /mnt/sda/hjy/bair/bair_h5/ # u16
   frame_shape: 64
   augmentation_params:

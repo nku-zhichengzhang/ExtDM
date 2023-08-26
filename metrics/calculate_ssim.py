@@ -44,7 +44,7 @@ def calculate_ssim_function(img1, img2):
 def trans(x):
     return x
 
-def calculate_ssim(videos1, videos2, calculate_per_frame, calculate_final):
+def calculate_ssim(videos1, videos2):
     print("calculate_ssim...")
 
     # videos [batch_size, timestamps, channel, h, w]
@@ -68,8 +68,8 @@ def calculate_ssim(videos1, videos2, calculate_per_frame, calculate_final):
             # img [timestamps[x], channel, h, w]
             # img [channel, h, w] numpy
 
-            img1 = video1[clip_timestamp].numpy()
-            img2 = video2[clip_timestamp].numpy()
+            img1 = video1[clip_timestamp].cpu().numpy()
+            img2 = video2[clip_timestamp].cpu().numpy()
             
             # calculate ssim of a video
             ssim_results_of_a_video.append(calculate_ssim_function(img1, img2))
@@ -81,18 +81,13 @@ def calculate_ssim(videos1, videos2, calculate_per_frame, calculate_final):
     ssim = {}
     ssim_std = {}
 
-    for clip_timestamp in range(calculate_per_frame, len(video1)+1, calculate_per_frame):
-        ssim[f'avg[:{clip_timestamp}]'] = np.mean(ssim_results[:,:clip_timestamp])
-        ssim_std[f'std[:{clip_timestamp}]'] = np.std(ssim_results[:,:clip_timestamp])
-
-    if calculate_final:
-        ssim['final'] = np.mean(ssim_results)
-        ssim_std['final'] = np.std(ssim_results)
+    for clip_timestamp in range(len(video1)):
+        ssim[f'avg[{clip_timestamp}]'] = np.mean(ssim_results[:,clip_timestamp])
+        ssim_std[f'std[{clip_timestamp}]'] = np.std(ssim_results[:,clip_timestamp])
 
     result = {
         "ssim": ssim,
         "ssim_std": ssim_std,
-        "ssim_per_frame": calculate_per_frame,
         "ssim_video_setting": video1.shape,
         "ssim_video_setting_name": "time, channel, heigth, width",
     }
@@ -104,8 +99,8 @@ def calculate_ssim1(videos1, videos2):
     videos1 = trans(videos1)
     videos2 = trans(videos2)
     ssim_results = []
-    # for video_num in range(videos1.shape[0]):
-    for video_num in tqdm(range(videos1.shape[0])):
+    for video_num in range(videos1.shape[0]):
+    # for video_num in tqdm(range(videos1.shape[0])):
         video1 = videos1[video_num]
         video2 = videos2[video_num]
         ssim_results_of_a_video = []
