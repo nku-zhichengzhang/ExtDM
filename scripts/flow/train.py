@@ -189,6 +189,7 @@ def train(
 
                 wandb.log({
                     "actual_step": actual_step,
+                    "lr": optimizer.param_groups[0]["lr"],
                     "loss": total_losses.val, 
                     "loss_perc": losses_perc.val,
                     "loss_shift": losses_equiv_shift.val,
