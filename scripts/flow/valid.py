@@ -204,6 +204,9 @@ if __name__ == "__main__":
     result_videos = torch.cat(result_videos)
     print(origin_videos.shape, origin_videos.shape)
 
+    torch.save(origin_videos, f'./{args.log_dir}/origin.pt')
+    torch.save(result_videos, f'./{args.log_dir}/result.pt')
+
     # our gif        
     if args.save_video:      
         from utils.visualize import visualize

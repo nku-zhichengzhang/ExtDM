@@ -57,7 +57,7 @@ def train(
     )
 
     valid_dataset = VideoDataset(
-        data_dir=dataset_params['root_dir'], 
+        data_dir=dataset_params['root_dir'],
         type=dataset_params['valid_params']['type'], 
         total_videos=dataset_params['valid_params']['total_videos'],
         num_frames=dataset_params['valid_params']['cond_frames'] + dataset_params['valid_params']['pred_frames'], 
@@ -189,6 +189,7 @@ def train(
 
                 wandb.log({
                     "actual_step": actual_step,
+                    "lr": optimizer.param_groups[0]["lr"],
                     "loss": total_losses.val, 
                     "loss_perc": losses_perc.val,
                     "loss_shift": losses_equiv_shift.val,

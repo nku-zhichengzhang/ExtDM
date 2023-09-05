@@ -8,8 +8,12 @@
 experiment_name: carla128
 
 dataset_params:
-  # root_dir: /mnt/sda/hjy/fdm/CARLA_Town_01_h5
-  root_dir: /mnt/sda/hjy/CARLA_Town_01_h5
+  root_dir: /mnt/sda/hjy/fdm/CARLA_Town_01_h5
+  # u8:  /mnt/rhdd/zzc/data/video_prediction/CARLA_Town_01/CARLA_Town_01_h5
+  # u11: /mnt/sda/hjy/fdm/CARLA_Town_01_h5/
+  # u12: 
+  # u15: /mnt/sda/hjy/data/carla/CARLA_Town_01_h5/
+  # u16: /mnt/sda/hjy/carla/carla_h5/ 
   frame_shape: 128
   augmentation_params:
     flip_param:
@@ -21,16 +25,16 @@ dataset_params:
       saturation: 0.1
       hue: 0.1
   min_frame_distance: 0
-  max_frame_distance: 100
+  max_frame_distance: 200
   train_params:
     type: train
-    cond_frames: 2
+    cond_frames: 10
     pred_frames: 5
   valid_params:
     total_videos: 100
     type: test
-    cond_frames: 2
-    pred_frames: 28
+    cond_frames: 10
+    pred_frames: 40
 
 flow_params:
   model_params:
@@ -42,7 +46,7 @@ flow_params:
       block_expansion: 32
       max_features: 1024
       num_blocks: 5
-      bg_type: 'affine' # 'zero', 'shift', 'affine', 'perspective'
+      bg_type: 'perspective' # 'zero', 'shift', 'affine', 'perspective'
     region_predictor_params:
       temperature: 0.1
       block_expansion: 32
@@ -67,17 +71,19 @@ flow_params:
         use_covar_heatmap: True
         estimate_occlusion_map: True
   train_params:
-    max_epochs: 246
-    num_repeats: 200
-    epoch_milestones: [60, 90]
-    lr: 2.0e-4
-    batch_size: 100
+    max_epochs: 628
+    num_repeats: 100
+    scheduler_param:
+      milestones: [150000]
+      gamma: 0.5
+    lr: 4.0e-5
+    batch_size: 128
     valid_batch_size: 256
     dataloader_workers: 8
-    print_freq: 1 # 100
-    save_img_freq: 5 # 500
-    update_ckpt_freq: 10 # 500
-    save_ckpt_freq: 20 # 2000
+    print_freq: 500
+    save_img_freq: 2500
+    update_ckpt_freq: 2500
+    save_ckpt_freq: 5000
     scales: [1, 0.5, 0.25, 0.125]
     transform_params:
       sigma_affine: 0.05

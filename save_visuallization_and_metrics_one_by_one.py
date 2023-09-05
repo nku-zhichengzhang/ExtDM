@@ -13,10 +13,15 @@ import json
 # test_name='./logs_validation/diffusion/kth64_DM_Batch32_lr2e-4_c10p5_0825_fix'
 # test_name='./logs_validation/diffusion/kth64_DM_Batch32_lr2e-4_c10p5_0825_random'
 
-test_name='./logs_validation/diffusion/bair64_DM_Batch32_lr2e-4_c2p7'
+# test_name='./logs_validation/diffusion/bair64_DM_Batch32_lr2e-4_c2p7'
 
-# num_frames_cond = 10
-num_frames_cond = 2
+test_name='./logs_validation/flow/carla128_FlowAE_Batch128_lr1e-4_Region40_perspective'
+
+num_frames_cond = 10
+# num_frames_cond = 2
+
+# video_num = 256
+video_num = 100
 
 # ps: pixel value for metrics should be in [0, 1]!
 
@@ -31,7 +36,7 @@ def metrics_by_video(videos1, videos2):
     with open(f'{test_name}/metrics.csv', "w") as f:
             f.write('id,psnr,ssim,lpips,fvd\n')
             
-    for i in tqdm(range(256)):
+    for i in tqdm(range(video_num)):
         video1 = videos1[i:i+1]
         video2 = videos2[i:i+1]
         metrics['fvd'] = calculate_fvd1(video1, video2, device)
@@ -46,19 +51,35 @@ def metrics_by_video(videos1, videos2):
 
 # 按帧算
 def metrics_by_frame(videos1, videos2):
-    metrics['fvd'] = calculate_fvd(videos1, videos2, device)
-    videos1 = videos1[:,num_frames_cond:]
-    videos2 = videos2[:,num_frames_cond:]
-    metrics['ssim'] = calculate_ssim(videos1, videos2)
-    metrics['psnr'] = calculate_psnr(videos1, videos2)
-    metrics['lpips'] = calculate_lpips(videos1, videos2, device)
 
-    for metrics_name in ['fvd', 'ssim', 'psnr', 'lpips']:
-        with open(f'{test_name}/framewise-{metrics_name}.csv', "w") as f:
-            f.write(f'frame,value\n')
-            for timestamp, value in metrics[metrics_name][metrics_name].items():
-                t = int(timestamp.split('[')[-1].split(']')[0]) + (num_frames_cond if metrics_name != 'fvd' else 0)
-                f.write(f'{t},{value}\n')
+    print(videos1.shape, torch.min(videos1), torch.max(videos1), torch.mean(videos1), torch.std(videos1))
+    print(videos2.shape, torch.min(videos2), torch.max(videos2), torch.mean(videos2), torch.std(videos2))
+
+    # metrics['fvd'] = calculate_fvd1(videos1, videos2, device, mini_bs=2)
+    # videos1 = videos1[:,num_frames_cond:]
+    # videos2 = videos2[:,num_frames_cond:]
+    # metrics['ssim'] = calculate_ssim1(videos1, videos2)
+    # metrics['psnr'] = calculate_psnr1(videos1, videos2)
+    # metrics['lpips'] = calculate_lpips1(videos1, videos2, device)
+
+    for i in [2,4,8,10,16,32]:
+
+        metrics['fvd'] = calculate_fvd1(videos1, videos2, device, mini_bs=i)
+        print(i, metrics)
+
+    # metrics['fvd'] = calculate_fvd(videos1, videos2, device)
+    # videos1 = videos1[:,num_frames_cond:]
+    # videos2 = videos2[:,num_frames_cond:]
+    # metrics['ssim'] = calculate_ssim(videos1, videos2)
+    # metrics['psnr'] = calculate_psnr(videos1, videos2)
+    # metrics['lpips'] = calculate_lpips(videos1, videos2, device)
+
+    # for metrics_name in ['fvd', 'ssim', 'psnr', 'lpips']:
+    #     with open(f'{test_name}/framewise-{metrics_name}.csv', "w") as f:
+    #         f.write(f'frame,value\n')
+    #         for timestamp, value in metrics[metrics_name][metrics_name].items():
+    #             t = int(timestamp.split('[')[-1].split(']')[0]) + (num_frames_cond if metrics_name != 'fvd' else 0)
+    #             f.write(f'{t},{value}\n')
 
 def show_videos(videos1, videos2):        
     visualize(
@@ -77,5 +98,5 @@ def show_videos(videos1, videos2):
     )
 
 # metrics_by_video(videos1, videos2)
-# metrics_by_frame(videos1, videos2)
-show_videos(videos1, videos2)
+metrics_by_frame(videos1, videos2)
+# show_videos(videos1, videos2)
