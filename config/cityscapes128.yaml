@@ -29,7 +29,7 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 2
-    pred_frames: 2 
+    pred_frames: 5
   valid_params:
     total_videos: 256
     type: val
@@ -38,7 +38,7 @@ dataset_params:
 
 flow_params:
   model_params:
-    num_regions: 20 # 20 # 10
+    num_regions: 20
     num_channels: 3
     estimate_affine: True
     revert_axis_swap: True
@@ -46,7 +46,7 @@ flow_params:
       block_expansion: 32
       max_features: 1024
       num_blocks: 5
-      bg_type: 'perspective' # 'zero', 'shift', 'affine', 'perspective'
+      bg_type: 'affine' # 'zero', 'shift', 'affine', 'perspective'
     region_predictor_params:
       temperature: 0.1
       block_expansion: 32
@@ -71,17 +71,19 @@ flow_params:
         use_covar_heatmap: True
         estimate_occlusion_map: True
   train_params:
-    max_epochs: 344
-    num_repeats: 50
-    epoch_milestones: [60, 90]
+    max_epochs: 432
+    num_repeats: 20
+    scheduler_param:
+      milestones: [20000, 40000]
+      gamma: 0.5
     lr: 2.0e-4
     batch_size: 128
     valid_batch_size: 256
     dataloader_workers: 8
-    print_freq: 100
-    save_img_freq: 500
-    update_ckpt_freq: 500
-    save_ckpt_freq: 2000
+    print_freq: 500
+    save_img_freq: 2500
+    update_ckpt_freq: 2500
+    save_ckpt_freq: 10000
     scales: [1, 0.5, 0.25, 0.125]
     transform_params:
       sigma_affine: 0.05
@@ -91,6 +93,7 @@ flow_params:
       perceptual: [10, 10, 10, 10, 10]
       equivariance_shift: 10
       equivariance_affine: 10
+
 diffusion_params:
   model_params:
     null_cond_prob: 0.0
