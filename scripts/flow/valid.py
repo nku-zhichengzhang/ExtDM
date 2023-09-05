@@ -11,7 +11,7 @@ import os
 import timeit
 import random
 import json_tricks as json
-
+from torch.utils.data import DataLoader
 from data.video_dataset import VideoDataset, dataset2videos
 from model.LFAE.flow_autoenc import FlowAE
 from utils.meter import AverageMeter
@@ -89,19 +89,23 @@ if __name__ == "__main__":
         exit(-1)
 
     model.eval()
+    
+    valid_dataset = VideoDataset(
+        data_dir=args.data_dir,
+        type=args.data_type, 
+        image_size=args.input_size,
+        num_frames=args.cond_frames+args.pred_frames,
+        total_videos=args.num_videos
+    )
 
-    valid_dataloader = data.DataLoader(VideoDataset(
-                                    data_dir=args.data_dir,
-                                    type=args.data_type, 
-                                    image_size=args.input_size,
-                                    num_frames=args.cond_frames+args.pred_frames,
-                                    total_videos=args.num_videos
-                                ),
-                                batch_size=args.batch_size,
-                                shuffle=False, 
-                                num_workers=args.num_workers,
-                                pin_memory=True
-                            )
+    valid_dataloader = DataLoader(
+        valid_dataset,
+        batch_size=args.batch_size,
+        shuffle=False, 
+        num_workers=args.num_workers,
+        pin_memory=True, 
+        drop_last=False
+    )
 
     batch_time = AverageMeter()
     data_time = AverageMeter()
