@@ -8,8 +8,12 @@
 experiment_name: cityscapes128
 
 dataset_params:
-  # root_dir: /mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5 # u8
-  root_dir: /mnt/sda/hjy/cityscapes/cityscapes_h5/ # u12/u16
+  root_dir: /mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5/
+  # u8:  /mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5/
+  # u11: /mnt/sda/hjy/Cityscapes/Cityscapes128_h5/
+  # u12: /mnt/sda/hjy/cityscapes/cityscapes_h5/
+  # u15: /mnt/sda/hjy/data/cityspaces/Cityscapes128_h5/
+  # u16: /mnt/sda/hjy/cityscapes/cityscapes_h5/
   frame_shape: 128
   augmentation_params:
     flip_param:

@@ -8,10 +8,12 @@
 experiment_name: smmnist64
 
 dataset_params:
-  # root_dir: /mnt/rhdd/zzc/data/video_prediction/SMMNIST/SMMNIST_h5 # u8
-  root_dir: /mnt/sda/hjy/SMMNIST/SMMNIST_h5 # u11
-  # root_dir: /mnt/sda/hjy/smmnist/smmnist_h5 # u16
-  # root_dir: /home/u009079/zzc/data/vidp/SMMNIST/SMMNIST_h5 # hpc_403
+  root_dir: /mnt/sda/hjy/SMMNIST/SMMNIST_h5
+  # u8:  /mnt/rhdd/zzc/data/video_prediction/SMMNIST/SMMNIST_h5/
+  # u11: /mnt/sda/hjy/SMMNIST/SMMNIST_h5/
+  # u12: 
+  # u15: 
+  # u16: /mnt/sda/hjy/smmnist/smmnist_h5/
   frame_shape: 64
   augmentation_params:
     flip_param:

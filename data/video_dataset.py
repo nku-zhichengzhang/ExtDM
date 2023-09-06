@@ -115,7 +115,7 @@ class VideoDataset(data.Dataset):
 def check_video_data_structure():
     import mediapy as media
 
-    dataset_root = dataset_root = "/mnt/sda/hjy/kth/processed/" # u11 - xs
+    dataset_root = dataset_root = "/mnt/sda/hjy/fdm/CARLA_Town_01_h5" # u11 - xs
     
     dataset_type = 'train'
     train_dataset = VideoDataset(dataset_root, dataset_type)
@@ -124,8 +124,8 @@ def check_video_data_structure():
     print(torch.min(train_dataset[10][0]), torch.max(train_dataset[10][0]))
     print(train_dataset[10][1])
 
-    dataset_type = 'valid'
-    # dataset_type = 'test'
+    # dataset_type = 'valid'
+    dataset_type = 'test'
     test_dataset = VideoDataset(dataset_root, dataset_type, total_videos=256)
     print(len(test_dataset))
     print(test_dataset[10][0].shape)

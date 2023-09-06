@@ -8,8 +8,12 @@
 experiment_name: carla128
 
 dataset_params:
-  # root_dir: /mnt/sda/hjy/fdm/CARLA_Town_01_h5 # u11
-  root_dir: /mnt/sda/hjy/data/carla/CARLA_Town_01_h5/ # u15
+  root_dir: /mnt/sda/hjy/fdm/CARLA_Town_01_h5
+  # u8:  /mnt/rhdd/zzc/data/video_prediction/CARLA_Town_01/CARLA_Town_01_h5
+  # u11: /mnt/sda/hjy/fdm/CARLA_Town_01_h5/
+  # u12: 
+  # u15: /mnt/sda/hjy/data/carla/CARLA_Town_01_h5/
+  # u16: /mnt/sda/hjy/carla/carla_h5/ 
   frame_shape: 128
   augmentation_params:
     flip_param:
@@ -29,8 +33,8 @@ dataset_params:
   valid_params:
     total_videos: 100
     type: test
-    cond_frames: 2
-    pred_frames: 28
+    cond_frames: 10
+    pred_frames: 40
 
 flow_params:
   model_params:

@@ -27,6 +27,16 @@ if __name__ == "__main__":
     cudnn.benchmark = True
     
     parser = argparse.ArgumentParser(description="Diffusion")
+    parser.add_argument("--total_pred_frames", 
+                        type=int, 
+                        default=10)
+    parser.add_argument("--num_videos", 
+                        type=int, 
+                        default=256)
+    parser.add_argument("--valid_batch_size", 
+                        type=int, 
+                        default=64,
+                        help="Number of images sent to the network in one step.")
     parser.add_argument("--random-seed", 
                         type=int, 
                         default=1234,
@@ -39,6 +49,10 @@ if __name__ == "__main__":
                         default="./config/carla128.yaml")
     parser.add_argument("--log_dir", 
                         default="./logs_validation/flow/flowautoenc_video_carla")
+    parser.add_argument("--random_time", 
+                        type=bool,
+                        default=False,
+                        help="set video of dataset starts from random_time.")
     parser.add_argument("--device_ids", 
                         default="0",
                         help="choose gpu device.")
@@ -46,10 +60,8 @@ if __name__ == "__main__":
                         default=False)
     args = parser.parse_args()
 
-    setup_seed(args.random_seed)
+    setup_seed(int(args.random_seed))
 
-    MEAN = (0.0, 0.0, 0.0)
-    
     with open(args.config) as f:
         config = yaml.safe_load(f)
     
@@ -68,23 +80,21 @@ if __name__ == "__main__":
     dataset_params = config['dataset_params']
     train_params = config['diffusion_params']['train_params']
     cond_frames = dataset_params['valid_params']['cond_frames']
-    total_pred_frames = dataset_params['valid_params']['pred_frames']
+    total_pred_frames = args.total_pred_frames
     pred_frames = dataset_params['train_params']['pred_frames']
 
-    json_path = os.path.join("loss%d.json" % (dataset_params['valid_params']['total_videos']))
-        
     valid_dataset = VideoDataset(
         data_dir=dataset_params['root_dir'],
         type=dataset_params['valid_params']['type'], 
         image_size=dataset_params['frame_shape'],
-        num_frames=dataset_params['valid_params']['cond_frames'] + dataset_params['valid_params']['pred_frames'], 
-        total_videos=dataset_params['valid_params']['total_videos'],
-        random_time=False,
+        num_frames=cond_frames + total_pred_frames, 
+        total_videos=args.num_videos,
+        random_time=args.random_time,
     )
 
     valid_dataloader = DataLoader(
         valid_dataset,
-        batch_size=train_params['valid_batch_size'],
+        batch_size=args.valid_batch_size,
         shuffle=False, 
         num_workers=train_params['dataloader_workers'],
         pin_memory=True, 
@@ -92,8 +102,8 @@ if __name__ == "__main__":
     )
     
     from math import ceil
-    NUM_ITER    = ceil(dataset_params['valid_params']['total_videos'] / train_params['valid_batch_size'])
-    NUM_AUTOREG = ceil(total_pred_frames / pred_frames)
+    NUM_ITER    = ceil(args.num_videos / args.valid_batch_size)
+    NUM_AUTOREG = ceil(args.total_pred_frames / pred_frames)
     
     actual_step = int(ceil(checkpoint['example'] / train_params['batch_size']))
     
@@ -166,8 +176,8 @@ if __name__ == "__main__":
     videos2 = result_videos
     
     fvd = calculate_fvd1(videos1, videos2, torch.device("cuda"), mini_bs=16)
-    videos1 = videos1[:, cond_frames:cond_frames + total_pred_frames]
-    videos2 = videos2[:, cond_frames:cond_frames + total_pred_frames]
+    videos1 = videos1[:, cond_frames:]
+    videos2 = videos2[:, cond_frames:]
     ssim = calculate_ssim1(videos1, videos2)[0]
     psnr = calculate_psnr1(videos1, videos2)[0]
     lpips = calculate_lpips1(videos1, videos2, torch.device("cuda"))[0]

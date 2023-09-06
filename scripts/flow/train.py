@@ -57,7 +57,7 @@ def train(
     )
 
     valid_dataset = VideoDataset(
-        data_dir=dataset_params['root_dir'], 
+        data_dir=dataset_params['root_dir'],
         type=dataset_params['valid_params']['type'], 
         total_videos=dataset_params['valid_params']['total_videos'],
         num_frames=dataset_params['valid_params']['cond_frames'] + dataset_params['valid_params']['pred_frames'], 
