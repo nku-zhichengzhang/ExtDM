@@ -95,7 +95,8 @@ if __name__ == "__main__":
                                     type=args.data_type, 
                                     image_size=args.input_size,
                                     num_frames=args.cond_frames+args.pred_frames,
-                                    total_videos=args.num_videos
+                                    total_videos=args.num_videos,
+                                    random_time=True
                                 ),
                                 batch_size=args.batch_size,
                                 shuffle=False, 
@@ -202,8 +203,14 @@ if __name__ == "__main__":
 
     origin_videos = torch.cat(origin_videos)
     result_videos = torch.cat(result_videos)
-    print(origin_videos.shape, origin_videos.shape)
+    print(origin_videos.shape, result_videos.shape)
 
+    print(torch.min(origin_videos), torch.max(origin_videos))
+    print(torch.min(result_videos), torch.max(result_videos))
+
+    torch.save(origin_videos, f'./{args.log_dir}/origin.pt')
+    torch.save(result_videos, f'./{args.log_dir}/result.pt')
+    
     # our gif        
     if args.save_video:      
         from utils.visualize import visualize
@@ -228,7 +235,11 @@ if __name__ == "__main__":
 
     videos1 = origin_videos
     videos2 = result_videos
-    print("[fvd    ]", calculate_fvd1(videos1, videos2, device, mini_bs=4))
+
+    for i in range(2, 18):
+        print(i, calculate_fvd1(videos1, videos2, device, mini_bs=i))
+    
+    print("[fvd    ]", calculate_fvd1(videos1, videos2, device, mini_bs=10))
     videos1 = videos1[:, args.cond_frames:]
     videos2 = videos2[:, args.cond_frames:]
     print("[ssim   ]", calculate_ssim1(videos1, videos2)[0])

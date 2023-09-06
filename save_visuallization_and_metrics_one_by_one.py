@@ -13,10 +13,17 @@ import json
 # test_name='./logs_validation/diffusion/kth64_DM_Batch32_lr2e-4_c10p5_0825_fix'
 # test_name='./logs_validation/diffusion/kth64_DM_Batch32_lr2e-4_c10p5_0825_random'
 
-test_name='./logs_validation/diffusion/bair64_DM_Batch32_lr2e-4_c2p7'
+# test_name='./logs_validation/diffusion/bair64_DM_Batch32_lr2e-4_c2p7'
 
-# num_frames_cond = 10
-num_frames_cond = 2
+# test_name='./logs_validation/flow/kth64_FlowAE_Batch256_lr2e-4'
+
+test_name='./logs_validation/flow/carla128_FlowAE_Batch128_lr1e-4_Region20_perspective'
+
+num_frames_cond = 10
+# num_frames_cond = 2
+
+# video_num = 256
+video_num = 100
 
 # ps: pixel value for metrics should be in [0, 1]!
 
@@ -31,7 +38,7 @@ def metrics_by_video(videos1, videos2):
     with open(f'{test_name}/metrics.csv', "w") as f:
             f.write('id,psnr,ssim,lpips,fvd\n')
             
-    for i in tqdm(range(256)):
+    for i in tqdm(range(video_num)):
         video1 = videos1[i:i+1]
         video2 = videos2[i:i+1]
         metrics['fvd'] = calculate_fvd1(video1, video2, device)
@@ -46,7 +53,14 @@ def metrics_by_video(videos1, videos2):
 
 # 按帧算
 def metrics_by_frame(videos1, videos2):
-    metrics['fvd'] = calculate_fvd(videos1, videos2, device)
+
+    print(videos1.shape, torch.min(videos1), torch.max(videos1), torch.mean(videos1), torch.std(videos1))
+    print(videos2.shape, torch.min(videos2), torch.max(videos2), torch.mean(videos2), torch.std(videos2))
+    for i in range(2, 18, 2):
+        metrics['fvd'] = calculate_fvd1(videos1, videos2, device, mini_bs=i)
+        print(metrics)
+
+    metrics['fvd'] = calculate_fvd(videos1, videos2, device, mini_bs=2)
     videos1 = videos1[:,num_frames_cond:]
     videos2 = videos2[:,num_frames_cond:]
     metrics['ssim'] = calculate_ssim(videos1, videos2)
@@ -66,7 +80,7 @@ def show_videos(videos1, videos2):
         origin=videos1,
         result=videos2,
         save_pic_num=10,
-        select_method=[2,5,27,30,52,61,71,84,134,222],
+        select_method='top',
         grid_nrow=5,
         save_gif_grid=True,
         save_gif=False,
@@ -77,5 +91,5 @@ def show_videos(videos1, videos2):
     )
 
 # metrics_by_video(videos1, videos2)
-# metrics_by_frame(videos1, videos2)
-show_videos(videos1, videos2)
+metrics_by_frame(videos1, videos2)
+# show_videos(videos1, videos2)

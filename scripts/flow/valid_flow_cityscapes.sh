@@ -22,8 +22,8 @@ python ./scripts/flow/valid.py \
 python ./scripts/flow/valid.py \
     --cond_frames 2 \
     --pred_frames 28 \
-    --num_videos 256 \
-    --batch_size 256 \
+    --num_videos 100 \
+    --batch_size 100 \
     --input_size 128 \
     --config_path "./config/cityscapes128.yaml" \
     --restore_from "./logs_training/flow_pretrained/cityscapes128_perspective/snapshots/RegionMM.pth" \

@@ -281,6 +281,8 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
     NUM_ITER = ceil(dataset_params['valid_params']['total_videos'] / train_params['valid_batch_size'])
     cond_frames = dataset_params['valid_params']['cond_frames']
     pred_frames = dataset_params['valid_params']['pred_frames']
+    pred_frames_per_step = dataset_params['train_params']['pred_frames']
+    NUM_STAGE = pred_frames//pred_frames_per_step
 
     origin_videos = []
     result_videos = []
@@ -303,7 +305,6 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         real_vids = total_vids[:, :, cond_frames:, :, :]
 
         # use first frame of each video as reference frame (vids: B C T H W)
-        ref_imgs = cond_vids[:, :, -1, :, :].clone().detach()
 
         assert real_vids.size(2) == pred_frames
 
@@ -312,15 +313,22 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         warped_grid_list = []
         conf_map_list = []
 
-        for frame_idx in range(pred_frames):
-            dri_imgs = real_vids[:, :, frame_idx, :, :]
-            with torch.no_grad():
-                model.set_train_input(ref_img=ref_imgs, dri_img=dri_imgs)
-                model.forward()
-            out_img_list.append(model.generated['prediction'].clone().detach())
-            warped_img_list.append(model.generated['deformed'].clone().detach())
-            warped_grid_list.append(model.generated['optical_flow'].clone().detach())
-            conf_map_list.append(model.generated['occlusion_map'].clone().detach())
+        for _ in range(NUM_STAGE+1):
+            if len(out_img_list)==0:
+                ref_imgs = cond_vids[:, :, -1, :, :].clone().detach()
+            else:
+                ref_imgs = out_img_list[-1]
+            for frame_idx in range(pred_frames_per_step):
+                dri_imgs = real_vids[:, :, frame_idx, :, :]
+                with torch.no_grad():
+                    model.set_train_input(ref_img=ref_imgs, dri_img=dri_imgs)
+                    model.forward()
+                out_img_list.append(model.generated['prediction'].clone().detach())
+                warped_img_list.append(model.generated['deformed'].clone().detach())
+                warped_grid_list.append(model.generated['optical_flow'].clone().detach())
+                conf_map_list.append(model.generated['occlusion_map'].clone().detach())
+                if len(out_img_list)==pred_frames:
+                    break
 
         out_img_list_tensor = torch.stack(out_img_list, dim=0)
         warped_img_list_tensor = torch.stack(warped_img_list, dim=0)
