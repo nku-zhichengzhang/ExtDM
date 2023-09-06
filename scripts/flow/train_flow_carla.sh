@@ -23,5 +23,5 @@ python ./scripts/flow/run.py \
     --log_dir ./logs_training/flow \
     --device_ids 0,1 \
     --random-seed 1000 \
-    --postfix FlowAE_Batch128_lr1e-4_Region20_perspective_Max50_Seed1000_0905 \
+    --postfix FlowAE_Batch128_lr1e-4_Region20_perspective_Max50_Seed1000_0906 \
     --set-start True

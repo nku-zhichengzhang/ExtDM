@@ -33,8 +33,8 @@ dataset_params:
   valid_params:
     total_videos: 100
     type: test
-    cond_frames: 10
-    pred_frames: 40
+    cond_frames: 2
+    pred_frames: 35
 
 flow_params:
   model_params:
@@ -105,7 +105,7 @@ diffusion_params:
     loss_type: 'l2'
   train_params:
     max_epochs: 7844
-    num_repeats: 1
+    num_repeats: 4
     scheduler_param:
       warm_up_steps: [10000]
       f_start: [1.e-6]
