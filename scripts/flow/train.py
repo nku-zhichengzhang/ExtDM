@@ -224,7 +224,7 @@ def train(
                     checkpoint_save_path
                 )
                 
-            if actual_step % train_params["update_ckpt_freq"] == 0 and cnt != 0:
+            if actual_step % train_params["update_ckpt_freq"] == 0:
                 print('updating snapshot...')
                 checkpoint_save_path=os.path.join(config["snapshots"], 'RegionMM.pth')
                 torch.save({'example': actual_step * train_params["batch_size"],
@@ -282,7 +282,7 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
     cond_frames = dataset_params['valid_params']['cond_frames']
     pred_frames = dataset_params['valid_params']['pred_frames']
     pred_frames_per_step = dataset_params['train_params']['pred_frames']
-    NUM_STAGE = pred_frames//pred_frames_per_step
+    NUM_STAGE = ceil(pred_frames / pred_frames_per_step)
 
     origin_videos = []
     result_videos = []
@@ -313,7 +313,7 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         warped_grid_list = []
         conf_map_list = []
 
-        for _ in range(NUM_STAGE+1):
+        for _ in range(NUM_STAGE):
             if len(out_img_list)==0:
                 ref_imgs = cond_vids[:, :, -1, :, :].clone().detach()
             else:
@@ -367,7 +367,7 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
 
     origin_videos = torch.cat(origin_videos)
     result_videos = torch.cat(result_videos)
-    print(origin_videos.shape, origin_videos.shape)
+    print(origin_videos.shape, result_videos.shape)
 
     from utils.visualize import visualize
     visualize(

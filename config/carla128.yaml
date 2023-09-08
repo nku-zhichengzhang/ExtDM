@@ -29,12 +29,12 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 2
-    pred_frames: 7
+    pred_frames: 14
   valid_params:
     total_videos: 100
     type: test
     cond_frames: 2
-    pred_frames: 35
+    pred_frames: 28
 
 flow_params:
   model_params:
