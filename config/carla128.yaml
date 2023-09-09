@@ -14,6 +14,9 @@ dataset_params:
   # u12: 
   # u15: /mnt/sda/hjy/data/carla/CARLA_Town_01_h5/
   # u16: /mnt/sda/hjy/carla/carla_h5/ 
+  # u22: /home/ubuntu/zzc/data/video_prediction/carla_h5/ 
+  # cmm4:/home/lz/zzc/data/video_prediction/carla_h5
+  # cmm21:/home/suuser/zzc/data/video_prediction/carla_h5/
   frame_shape: 128
   augmentation_params:
     flip_param:

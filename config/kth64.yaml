@@ -14,6 +14,9 @@ dataset_params:
   # u12: /mnt/sda/hjy/kth/kth_h5/
   # u15: /mnt/sda/hjy/data/kth/kth_h5/
   # u16: /mnt/sda/hjy/kth/kth_h5/
+  # u22: /home/ubuntu/zzc/data/video_prediction/kth_h5/ 
+  # cmm4:/home/lz/zzc/data/video_prediction/kth_h5
+  # cmm21:/home/suuser/zzc/data/video_prediction/kth_h5/
   frame_shape: 64
   augmentation_params:
     flip_param:
