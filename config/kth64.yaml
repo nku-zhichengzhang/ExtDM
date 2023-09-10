@@ -21,7 +21,7 @@ dataset_params:
       saturation: 0.1
       hue: 0.1
   min_frame_distance: 0
-  max_frame_distance: 50
+  max_frame_distance: 20
   train_params:
     type: train
     cond_frames: 10
@@ -67,19 +67,19 @@ flow_params:
         use_covar_heatmap: True
         estimate_occlusion_map: True
   train_params:
-    max_epochs: 1070
-    num_repeats: 100
+    max_epochs: 1072
+    num_repeats: 25
     scheduler_param:
-      milestones: [20000, 40000]
+      milestones: [150000]
       gamma: 0.5
-    lr: 4.0e-4
+    lr: 2.0e-4
     batch_size: 256
     valid_batch_size: 256
     dataloader_workers: 8
     print_freq: 500
     save_img_freq: 2500
     update_ckpt_freq: 2500
-    save_ckpt_freq: 10000
+    save_ckpt_freq: 5000
     scales: [1, 0.5, 0.25]
     transform_params:
       sigma_affine: 0.05

@@ -424,21 +424,21 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
     origin_videos = rearrange(origin_videos, 'b c t h w -> b t c h w')
     result_videos = rearrange(result_videos, 'b c t h w -> b t c h w')
     
-    # from utils.visualize import visualize
-    # visualize(
-    #     save_path=f"{log_dir}/video_result",
-    #     origin=origin_videos,
-    #     result=result_videos,
-    #     save_pic_num=8,
-    #     select_method='linspace',
-    #     grid_nrow=4,
-    #     save_gif_grid=False,
-    #     save_gif=True,
-    #     save_pic_row=False,
-    #     save_pic=False,
-    #     epoch_or_step_num=actual_step, 
-    #     cond_frame_num=cond_frames,
-    # )
+    from utils.visualize import visualize
+    visualize(
+        save_path=f"{log_dir}/video_result",
+        origin=origin_videos,
+        result=result_videos,
+        save_pic_num=8,
+        select_method='linspace',
+        grid_nrow=4,
+        save_gif_grid=False,
+        save_gif=True,
+        save_pic_row=False,
+        save_pic=False,
+        epoch_or_step_num=actual_step, 
+        cond_frame_num=cond_frames,
+    )
 
     from metrics.calculate_fvd import calculate_fvd,calculate_fvd1
     from metrics.calculate_psnr import calculate_psnr,calculate_psnr1

@@ -70,18 +70,17 @@ def calculate_fvd1(videos1, videos2, device, mini_bs=10):
 # test code / using example
 
 def main():
-    NUMBER_OF_VIDEOS = 8
-    VIDEO_LENGTH = 10
+    NUMBER_OF_VIDEOS = 100
+    VIDEO_LENGTH = 50
     CHANNEL = 3
     SIZE = 64
-    CALCULATE_PER_FRAME = 5
-    CALCULATE_FINAL = True
     videos1 = torch.zeros(NUMBER_OF_VIDEOS, VIDEO_LENGTH, CHANNEL, SIZE, SIZE, requires_grad=False)
     videos2 = torch.ones(NUMBER_OF_VIDEOS, VIDEO_LENGTH, CHANNEL, SIZE, SIZE, requires_grad=False)
-    # device = torch.device("cuda")
-    device = torch.device("cpu")
-    mini_bs=2
+    device = torch.device("cuda:1")
+    # device = torch.device("cpu")
 
+    for mini_bs in range(2, 20, 2):
+        print(mini_bs, calculate_fvd1(videos1,videos2,device, mini_bs))
 
     print(calculate_fvd1(videos1,videos2,device, mini_bs))
 
