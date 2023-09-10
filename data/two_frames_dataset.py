@@ -184,27 +184,33 @@ if __name__ == "__main__":
     import yaml
 
     yaml_files = [
-        # "/home/ubuntu11/zzc/code/videoprediction/EDM_v1/config/smmnist64.yaml",
-        # "/home/ubuntu11/zzc/code/videoprediction/EDM_v1/config/kth64.yaml",
-        # "/home/ubuntu11/zzc/code/videoprediction/EDM_v1/config/bair64.yaml",
-        # "/home/ubuntu11/zzc/code/videoprediction/EDM_v1/config/cityscapes128.yaml",
-        "/home/ubuntu11/zzc/code/videoprediction/EDM_v1/config/carla128.yaml"
+        # "/home/ubuntu11/zzc/code/videoprediction/EDM/config/smmnist64.yaml",
+        # "/home/ubuntu11/zzc/code/videoprediction/EDM/config/kth64.yaml",
+        # "/home/ubuntu11/zzc/code/videoprediction/EDM/config/bair64.yaml",
+        # "/home/ubuntu11/zzc/code/videoprediction/EDM/config/cityscapes128.yaml",
+        "/home/ubuntu11/zzc/code/videoprediction/EDM/config/carla128.yaml"
     ]
 
-    # type = 'train'
-    # type = 'valid'
-    type = 'test'
-
-    # total_videos = -1
+    total_videos = -1
     # total_videos = 256
-    total_videos = 100
+    # total_videos = 100
 
     for yaml_file in yaml_files:
 
         with open(yaml_file) as f:
             config = yaml.safe_load(f)
 
-        dataset = TwoFramesDataset(**config['dataset_params'], type=type, total_videos=total_videos)
+        dataset_params = config['dataset_params']
+
+        dataset = TwoFramesDataset(
+            root_dir=dataset_params['root_dir'], 
+            type=dataset_params['train_params']['type'], 
+            total_videos=total_videos, 
+            frame_shape=dataset_params['frame_shape'], 
+            max_frame_distance=dataset_params['max_frame_distance'], 
+            min_frame_distance=dataset_params['min_frame_distance'],
+            augmentation_params=dataset_params['augmentation_params']
+        )
         
         print("*"*20)
         data = dataset[10]

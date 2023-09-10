@@ -8,8 +8,15 @@
 experiment_name: kth64
 
 dataset_params:
-  root_dir: /mnt/rhdd/zzc/data/video_prediction/KTH/processed/ # u8
-  # root_dir: /mnt/sda/hjy/kth/processed # u11
+  root_dir: /mnt/sda/hjy/kth/processed
+  # u8:  /mnt/rhdd/zzc/data/video_prediction/KTH/processed/
+  # u11: /mnt/sda/hjy/kth/processed/
+  # u12: /mnt/sda/hjy/kth/kth_h5/
+  # u15: /mnt/sda/hjy/data/kth/kth_h5/
+  # u16: /mnt/sda/hjy/kth/kth_h5/
+  # u22: /home/ubuntu/zzc/data/video_prediction/kth_h5/ 
+  # cmm4:/home/lz/zzc/data/video_prediction/kth_h5
+  # cmm21:/home/suuser/zzc/data/video_prediction/kth_h5/
   frame_shape: 64
   augmentation_params:
     flip_param:
@@ -34,7 +41,7 @@ dataset_params:
 
 flow_params:
   model_params:
-    num_regions: 10
+    num_regions: 20
     num_channels: 3
     estimate_affine: True
     revert_axis_swap: True

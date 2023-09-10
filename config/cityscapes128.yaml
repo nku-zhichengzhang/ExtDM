@@ -8,8 +8,15 @@
 experiment_name: cityscapes128
 
 dataset_params:
-  # root_dir: /mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5 # u8
-  root_dir: /mnt/sda/hjy/cityscapes/cityscapes_h5/ # u16
+  root_dir: /mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5/
+  # u8:  /mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5/
+  # u11: /mnt/sda/hjy/Cityscapes/Cityscapes128_h5/
+  # u12: /mnt/sda/hjy/cityscapes/cityscapes_h5/
+  # u15: /mnt/sda/hjy/data/cityspaces/Cityscapes128_h5/
+  # u16: /mnt/sda/hjy/cityscapes/cityscapes_h5/
+  # u22: /home/ubuntu/zzc/data/video_prediction/cityscapes_h5/ 
+  # cmm4:/home/lz/zzc/data/video_prediction/cityscapes_h5
+  # cmm21:/home/suuser/zzc/data/video_prediction/cityscapes_h5/
   frame_shape: 128
   augmentation_params:
     flip_param:
@@ -34,7 +41,7 @@ dataset_params:
 
 flow_params:
   model_params:
-    num_regions: 10
+    num_regions: 20
     num_channels: 3
     estimate_affine: True
     revert_axis_swap: True

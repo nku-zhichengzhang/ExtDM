@@ -11,13 +11,13 @@ python ./scripts/flow/valid.py \
     --num_videos 256 \
     --batch_size 256 \
     --input_size 64 \
-    --config_path "./config/kth64.yaml" \
-    --restore_from "$FLOWCKPT/kth64/snapshots/RegionMM.pth" \
-    --log_dir "./logs_validation/flow/kth64" \
-    --data_dir "/mnt/sda/hjy/kth/processed" \
+    --config_path "./logs_training/flow/kth64_FlowAE_Batch256_lr2e-4/kth64.yaml" \
+    --restore_from "./logs_training/flow/kth64_FlowAE_Batch256_lr2e-4/snapshots/RegionMM.pth" \
+    --log_dir "./logs_validation/flow/kth64_FlowAE_Batch256_lr2e-4" \
+    --data_dir "/mnt/sda/hjy/data/kth/kth_h5/" \
     --data_type "valid" \
     --save-video True \
-    --random-seed 5000 \
+    --random-seed 1000 \
     --gpu "0"
 
 # --restore_from "./logs_training/flow/kth64_test/snapshots/RegionMM.pth" \

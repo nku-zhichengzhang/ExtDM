@@ -51,7 +51,7 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
-    setup_seed(args.random_seed)
+    setup_seed(int(args.random_seed))
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
@@ -95,10 +95,7 @@ if __name__ == '__main__':
     wandb.init(
         entity="nku428",
         project="EDM_v1",
-        config={
-            "learning_rate": train_params['lr'],
-            "epochs": train_params['max_epochs'],
-        },
+        config=config,
         name=f"{config['experiment_name']}{postfix}",
         dir=log_dir,
         tags=["diffusion"]
