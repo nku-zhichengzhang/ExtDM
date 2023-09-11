@@ -8,7 +8,7 @@
 experiment_name: bair
 
 dataset_params:
-  root_dir: /mnt/sda/hjy/bair/BAIR_h5/
+  root_dir: /mnt/sda/hjy/bair/bair_h5/
   # u8:  /mnt/rhdd/zzc/data/video_prediction/BAIR/BAIR_h5/
   # u11: /mnt/sda/hjy/bair/BAIR_h5/
   # u12: /mnt/sda/hjy/bair/bair_h5/

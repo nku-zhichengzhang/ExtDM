@@ -2,7 +2,7 @@
 
 # FLOWCKPT=/mnt/rhdd/zzc/data/video_prediction/flow_pretrained # u8
 # FLOWCKPT=/mnt/sda/hjy/flow_pretrained/ # u11
-FLOWCKPT=/mnt/sda/hjy/flow_pretrained # u16
+FLOWCKPT=/mnt/sda/hjy/flow_pretrained/better # u16
 
 # 从头训练
 python ./scripts/diffusion/run.py \
