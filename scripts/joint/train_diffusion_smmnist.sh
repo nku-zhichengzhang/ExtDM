@@ -21,7 +21,7 @@ DIFFCKPT=/mnt/sda/hjy/diff_pretrained
 python ./scripts/diffusion/run.py \
     --set-start True \
     --flowae_checkpoint $FLOWCKPT/smmnist64/snapshots/RegionMM.pth \
-    --checkpoint $DIFFCKPT/smmnist64_DM_Batch32_lr2e-4_c10p10/flowdiff_0032_S202500.pth* \
+    --checkpoint $DIFFCKPT/smmnist64_DM_Batch32_lr2e-4_c10p10/flowdiff_0032_S202500.pth \
     --config ./config/smmnist64.yaml \
     --log_dir ./logs_training/diffusion \
     --device_ids 0,1 \
