@@ -1,0 +1,1 @@
+salloc -p gpu -J edm -N1 -n6 --gres=gpu:8 

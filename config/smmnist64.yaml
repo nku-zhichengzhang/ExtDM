@@ -8,7 +8,7 @@
 experiment_name: smmnist64
 
 dataset_params:
-  root_dir: /mnt/sda/hjy/SMMNIST/SMMNIST_h5
+  root_dir: /mnt/sda/hjy/smmnist/smmnist_h5/
   # u8:  /mnt/rhdd/zzc/data/video_prediction/SMMNIST/SMMNIST_h5/
   # u11: /mnt/sda/hjy/SMMNIST/SMMNIST_h5/
   # u12: 
@@ -32,7 +32,7 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 10
-    pred_frames: 4
+    pred_frames: 10
   valid_params:
     total_videos: 256
     type: test
