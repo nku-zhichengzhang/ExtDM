@@ -8,7 +8,7 @@
 experiment_name: smmnist64
 
 dataset_params:
-  root_dir: /mnt/sda/hjy/SMMNIST/SMMNIST_h5
+  root_dir: /home/u1120230288/zzc/data/video_prediction/dataset/SMMNIST_h5
   # u8:  /mnt/rhdd/zzc/data/video_prediction/SMMNIST/SMMNIST_h5/
   # u11: /mnt/sda/hjy/SMMNIST/SMMNIST_h5/
   # u12: 
@@ -17,6 +17,7 @@ dataset_params:
   # u22: /home/ubuntu/zzc/data/video_prediction/smmnist_h5/ 
   # cmm4:/home/lz/zzc/data/video_prediction/smmnist_h5/
   # cmm21:/home/suuser/zzc/data/video_prediction/smmnist_h5/
+  # hpc_hjy:/home/u1120230288/zzc/data/video_prediction/SMMNIST_h5
   frame_shape: 64
   augmentation_params:
     flip_param:
@@ -32,7 +33,7 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 10
-    pred_frames: 4
+    pred_frames: 5   
   valid_params:
     total_videos: 256
     type: test
@@ -102,15 +103,15 @@ diffusion_params:
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:
-    max_epochs: 108
-    num_repeats: 2
+    max_epochs: 134
+    num_repeats: 1
     scheduler_param:
-      milestones: [70000, 120000]
-      gamma: 0.5
+      milestones: [100000, 150000]
+      gamma: 0.8
     lr: 2.0e-4
-    batch_size: 32
-    valid_batch_size: 128
-    dataloader_workers: 8
+    batch_size: 40
+    valid_batch_size: 16
+    dataloader_workers: 32
     print_freq: 100
     save_img_freq: 1000
     save_vid_freq: 1000

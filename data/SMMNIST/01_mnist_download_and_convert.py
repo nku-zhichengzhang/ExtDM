@@ -72,12 +72,12 @@ def read_data(video):
 def make_h5_from_kth(mnist_dir, image_size=64, seq_len=40, out_dir='./h5_ds', vids_per_shard=1000000, force_h5=False):
     
     train_dataset = StochasticMovingMNIST(
-        mnist_dir, train=True, seq_len=seq_len, num_digits=3,
+        mnist_dir, train=True, seq_len=seq_len, num_digits=2,
         step_length=0.1, with_target=False
     )
 
     test_dataset = StochasticMovingMNIST(
-        mnist_dir, train=False, seq_len=seq_len, num_digits=3,
+        mnist_dir, train=False, seq_len=seq_len, num_digits=2,
         step_length=0.1, with_target=False, 
         total_videos=256
     )

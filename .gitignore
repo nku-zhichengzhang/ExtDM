@@ -4,3 +4,8 @@ __pycache__
 wandb
 slurm-*.out
 flow_output
+.__dpc*
+video2video/*
+metrics_carla/
+output_tensor/*
+output_model/*

@@ -71,7 +71,46 @@ def flow2fig(warped_grid, grid_size=32, img_size=128):
     img = cv2.resize(img, (img_size, img_size), interpolation=cv2.INTER_AREA)
     return img
 
+def conf2fig1(img, img_size=128):
+    from einops import repeat
+    img = repeat(img, 'h w c -> h w (3 c)')
+    img = cv2.resize(img, (img_size, img_size), interpolation=cv2.INTER_AREA)
+    return img
 
+def video_flow2fig(video_warped_grid, grid_size=32, img_size=128):
+    # (64, 2, 5, 32, 32) 
+    # -> (n  32, 32, 2) 
+    # -> (n  64, 64, 3) 
+    # -> (64, 3, 5, 64, 64)
+    
+    from einops import rearrange
+    bs = video_warped_grid.shape[0]
+    video_warped_grid = rearrange(video_warped_grid, 'b c t h w -> (b t) h w c')
+    res = []
+    for i in range(len(video_warped_grid)):
+        res.append(torch.from_numpy(flow2fig(video_warped_grid[i].numpy(), grid_size, img_size)))
+    res = torch.stack(res)
+    res = rearrange(res, '(b t) h w c -> b c t h w', b=bs)
+    return res
+
+def video_conf2fig(video_warped, img_size=128):
+    # (64, 1, 5, 32, 32) 
+    # -> (n  32, 32, 2) 
+    # -> (n  64, 64, 3) 
+    # -> (64, 3, 5, 64, 64)
+    
+    from einops import rearrange, repeat
+    bs = video_warped.shape[0]
+    video_warped = repeat(video_warped, 'b c t h w -> b (3 c) t h w')
+    video_warped = rearrange(video_warped, 'b c t h w -> (b t) h w c')
+    
+    res = []
+    for i in range(len(video_warped)):
+        res.append(torch.from_numpy(cv2.resize(video_warped[i].numpy(), (img_size, img_size), interpolation=cv2.INTER_AREA)))
+    res = torch.stack(res)
+    res = rearrange(res, '(b t) h w c -> b c t h w', b=bs)
+    return res
+    
 def conf2fig(conf, img_size=128):
     conf = F.interpolate(conf.unsqueeze(dim=0), size=img_size).data.cpu().numpy()
     conf = np.transpose(conf, [0, 2, 3, 1])

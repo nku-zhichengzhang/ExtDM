@@ -85,6 +85,15 @@ class Generator(nn.Module):
         else:
             out = input_previous if input_previous is not None else input_skip
         return out
+    
+    def forward_bottle(self, source_image):
+        out = self.first(source_image)
+        skips = [out]
+        for i in range(len(self.down_blocks)):
+            out = self.down_blocks[i](out)
+            skips.append(out)
+
+        return out
 
     def forward(self, source_image, driving_region_params, source_region_params, bg_params=None):
         out = self.first(source_image)
@@ -154,6 +163,30 @@ class Generator(nn.Module):
             out = self.up_blocks[i](out)
         if self.skips:
             out = self.apply_optical(input_skip=skips[0], input_previous=out, motion_params=motion_params)
+        
+
+        ##################################################################
+        # print("=====out=====", out.shape)
+
+        # import os
+        # folder_path = './output_tensor'  # 请替换为实际的文件夹路径
+
+        # # 获取文件夹中已有的文件索引列表
+        # existing_indices = [int(file.split('_')[-1].split('.')[0]) for file in os.listdir(folder_path) if file.startswith('output_')]
+
+        # # 找到最大的索引值，如果文件夹为空，则设置为0
+        # max_index = max(existing_indices) if existing_indices else 0
+
+        # # 构建新文件的索引和文件名
+        # new_index = max_index + 1
+        # output_filename = f'output_{new_index}.pt'
+        # output_path = os.path.join(folder_path, output_filename)
+
+        # # 保存Tensor文件
+        # torch.save(out, output_path)
+
+        # print(f"保存文件 {output_filename} 完成，新索引为 {new_index}")
+        ####################################################################
         out = self.final(out)
         out = torch.sigmoid(out)
 

@@ -18,7 +18,7 @@ def trans(x):
     return x
 
 def calculate_psnr(videos1, videos2):
-    print("calculate_psnr...")
+    # print("calculate_psnr...")
 
     # videos [batch_size, timestamps, channel, h, w]
     
@@ -29,7 +29,8 @@ def calculate_psnr(videos1, videos2):
     
     psnr_results = []
     
-    for video_num in tqdm(range(videos1.shape[0])):
+    for video_num in range(videos1.shape[0]):
+    # for video_num in tqdm(range(videos1.shape[0])):
         # get a video
         # video [timestamps, channel, h, w]
         video1 = videos1[video_num]
@@ -72,8 +73,8 @@ def calculate_psnr1(videos1, videos2):
     videos1 = trans(videos1)
     videos2 = trans(videos2)
     psnr_results = []
-    # for video_num in range(videos1.shape[0]):
-    for video_num in tqdm(range(videos1.shape[0])):
+    for video_num in range(videos1.shape[0]):
+    # for video_num in tqdm(range(videos1.shape[0])):
         video1 = videos1[video_num]
         video2 = videos2[video_num]
         psnr_results_of_a_video = []
@@ -85,6 +86,43 @@ def calculate_psnr1(videos1, videos2):
     psnr_results = np.array(psnr_results)
     return np.mean(psnr_results), np.std(psnr_results)
 
+def calculate_psnr2(videos1, videos2):
+    assert videos1.shape == videos2.shape
+    videos1 = trans(videos1)
+    videos2 = trans(videos2)
+    psnr_results = []
+    for video_num in range(videos1.shape[0]):
+    # for video_num in tqdm(range(videos1.shape[0])):
+        video1 = videos1[video_num]
+        video2 = videos2[video_num]
+        psnr_results_of_a_video = []
+        for clip_timestamp in range(len(video1)):
+            img1 = video1[clip_timestamp].cpu().numpy()
+            img2 = video2[clip_timestamp].cpu().numpy()
+            psnr_results_of_a_video.append(img_psnr(img1, img2))
+        psnr_results.append(psnr_results_of_a_video)
+    psnr_results = np.array(psnr_results)
+    # print(np.mean(psnr_results,axis=-1))
+    return np.max(np.mean(psnr_results,axis=-1))
+
+def calculate_psnr3(videos1, videos2):
+    assert videos1.shape == videos2.shape
+    videos1 = trans(videos1)
+    videos2 = trans(videos2)
+    psnr_results = []
+    for video_num in range(videos1.shape[0]):
+    # for video_num in tqdm(range(videos1.shape[0])):
+        video1 = videos1[video_num]
+        video2 = videos2[video_num]
+        psnr_results_of_a_video = []
+        for clip_timestamp in range(len(video1)):
+            img1 = video1[clip_timestamp].cpu().numpy()
+            img2 = video2[clip_timestamp].cpu().numpy()
+            psnr_results_of_a_video.append(img_psnr(img1, img2))
+        psnr_results.append(psnr_results_of_a_video)
+    psnr_results = np.array(psnr_results)
+    # print(np.mean(psnr_results,axis=-1))
+    return psnr_results
 # test code / using example
 
 def main():
@@ -92,15 +130,14 @@ def main():
     VIDEO_LENGTH = 50
     CHANNEL = 3
     SIZE = 64
-    CALCULATE_PER_FRAME = 5
-    CALCULATE_FINAL = True
     videos1 = torch.zeros(NUMBER_OF_VIDEOS, VIDEO_LENGTH, CHANNEL, SIZE, SIZE, requires_grad=False)
     videos2 = torch.zeros(NUMBER_OF_VIDEOS, VIDEO_LENGTH, CHANNEL, SIZE, SIZE, requires_grad=False)
     device = torch.device("cuda")
 
     import json
-    result = calculate_psnr(videos1, videos2, CALCULATE_PER_FRAME, CALCULATE_FINAL)
-    print(json.dumps(result, indent=4))
+    result = calculate_psnr2(videos1, videos2)
+    # print(json.dumps(result, indent=4))
+    print(result)
 
 
 if __name__ == "__main__":

@@ -73,7 +73,7 @@ def grid2fig(warped_grid, grid_size=32, img_size=256):
     return out
 
 
-name="bair64_DM_Batch32_lr2e-4_c2p7"
+name="bair64_not_onlyflow"
 
 start = timeit.default_timer()
 BATCH_SIZE = 256
@@ -91,7 +91,7 @@ RANDOM_SEED = 1234 # 1234
 MEAN = (0.0, 0.0, 0.0)
 # the path to trained LFAE model
 # RESTORE_FROM = "/mnt/sda/hjy/flow_pretrained/kth64/snapshots/RegionMM.pth"
-RESTORE_FROM = "/mnt/sda/hjy/flow_pretrained/bair64/snapshots/RegionMM.pth"
+RESTORE_FROM = "/mnt/rhdd/zzc/data/video_prediction/flow_pretrained/better/bair64/snapshots/RegionMM.pth"
 config_pth = f"./logs_training/diffusion/{name}/bair64.yaml"
 
 visualizer = Visualizer()
@@ -186,16 +186,16 @@ def main():
             
             driven = einops.rearrange(dri_imgs[0]*255, "c h w -> h w c").numpy()
             warped = model.generated['optical_flow'][0].clone().detach().cpu().numpy()
-            # print('1', np.max(warped), np.min(warped))
+            print('1', np.max(warped), np.min(warped), warped.shape)
             output = flow2fig(warped_grid=warped, grid_size=32, img_size=64)
             flow.append(output)
-            # print('2', np.max(output), np.min(output))
+            print('2', np.max(output), np.min(output), output.shape)
             cv2.imwrite(f'./flow_output/{name}/{idx}/driven_{frame_idx}.png', driven[:,:,::-1]) # RGB -> BGR
             cv2.imwrite(f'./flow_output/{name}/{idx}/flow_{frame_idx}.png', output[:,:,::-1]) # RGB -> BGR
         
         video = np.array(einops.rearrange(result_batch[0],'c t h w -> t h w c'))
         flow = np.array(flow)
-        media.show_videos([video, flow], fps=20)
+        media.show_videos([, flow], fps=20)
 
         iter_end = timeit.default_timer()
 

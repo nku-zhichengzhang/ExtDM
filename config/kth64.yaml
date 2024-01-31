@@ -8,7 +8,7 @@
 experiment_name: kth64
 
 dataset_params:
-  root_dir: /mnt/sda/hjy/kth/processed
+  root_dir: /home/u1120230288/zzc/data/video_prediction/dataset/KTH_h5
   # u8:  /mnt/rhdd/zzc/data/video_prediction/KTH/processed/
   # u11: /mnt/sda/hjy/kth/processed/
   # u12: /mnt/sda/hjy/kth/kth_h5/
@@ -17,6 +17,7 @@ dataset_params:
   # u22: /home/ubuntu/zzc/data/video_prediction/kth_h5/ 
   # cmm4:/home/lz/zzc/data/video_prediction/kth_h5
   # cmm21:/home/suuser/zzc/data/video_prediction/kth_h5/
+  # hjy_hpc:/home/u1120230288/zzc/data/video_prediction/KTH_h5/
   frame_shape: 64
   augmentation_params:
     flip_param:
@@ -28,11 +29,11 @@ dataset_params:
       saturation: 0.1
       hue: 0.1
   min_frame_distance: 0
-  max_frame_distance: 20
+  max_frame_distance: 50
   train_params:
     type: train
     cond_frames: 10
-    pred_frames: 5
+    pred_frames: 20
   valid_params:
     total_videos: 256
     type: valid
@@ -54,7 +55,7 @@ flow_params:
       temperature: 0.1
       block_expansion: 32
       max_features: 1024
-      scale_factor: 0.5
+      scale_factor: 0.50
       num_blocks: 5
       pca_based: True
       pad: 0
@@ -69,20 +70,20 @@ flow_params:
         block_expansion: 64
         max_features: 1024
         num_blocks: 5
-        scale_factor: 0.5
+        scale_factor: 0.50
         use_deformed_source: True
         use_covar_heatmap: True
         estimate_occlusion_map: True
   train_params:
-    max_epochs: 1072
-    num_repeats: 25
+    max_epochs: 1070
+    num_repeats: 100
     scheduler_param:
       milestones: [150000]
       gamma: 0.5
     lr: 2.0e-4
     batch_size: 256
     valid_batch_size: 256
-    dataloader_workers: 8
+    dataloader_workers: 32
     print_freq: 500
     save_img_freq: 2500
     update_ckpt_freq: 2500
@@ -105,15 +106,15 @@ diffusion_params:
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:
-    max_epochs: 13368
+    max_epochs: 3342 # 13368
     num_repeats: 1
     scheduler_param:
-      milestones: [70000, 120000]
-      gamma: 0.5
-    lr: 2.0e-4
-    batch_size: 32
-    valid_batch_size: 128
-    dataloader_workers: 8
+      milestones: [70000, 150000]
+      gamma: 0.8
+    lr: 5.0e-5
+    batch_size: 8
+    valid_batch_size: 8
+    dataloader_workers: 16
     print_freq: 100
     save_img_freq: 1000
     save_vid_freq: 1000

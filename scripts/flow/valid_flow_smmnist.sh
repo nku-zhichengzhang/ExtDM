@@ -7,7 +7,6 @@ python ./scripts/flow/valid.py \
     --batch_size 256 \
     --input_size 64 \
     --config_path "./config/smmnist64.yaml" \
-    --restore_from "./logs_training/flow_pretrained/smmnist64/snapshots/RegionMM.pth" \
     --log_dir "./logs_validation/flow/smmnist64" \
     --data_dir "/mnt/sda/hjy/SMMNIST/SMMNIST_h5" \
     --data_type "test" \

@@ -8,7 +8,7 @@
 experiment_name: carla128
 
 dataset_params:
-  root_dir: /mnt/sda/hjy/fdm/CARLA_Town_01_h5
+  root_dir: /home/u1120230288/zzc/data/video_prediction/CARLA_Town_01_h5
   # u8:  /mnt/rhdd/zzc/data/video_prediction/CARLA_Town_01/CARLA_Town_01_h5
   # u11: /mnt/sda/hjy/fdm/CARLA_Town_01_h5/
   # u12: 
@@ -17,6 +17,7 @@ dataset_params:
   # u22: /home/ubuntu/zzc/data/video_prediction/carla_h5/ 
   # cmm4:/home/lz/zzc/data/video_prediction/carla_h5
   # cmm21:/home/suuser/zzc/data/video_prediction/carla_h5/
+  # hpc_hjy:/home/u1120230288/zzc/data/video_prediction/CARLA_Town_01_h5
   frame_shape: 128
   augmentation_params:
     flip_param:
@@ -31,13 +32,13 @@ dataset_params:
   max_frame_distance: 20
   train_params:
     type: train
-    cond_frames: 2
-    pred_frames: 14
+    cond_frames: 10
+    pred_frames: 20
   valid_params:
     total_videos: 100
     type: test
-    cond_frames: 2
-    pred_frames: 28
+    cond_frames: 10
+    pred_frames: 40
 
 flow_params:
   model_params:
@@ -101,24 +102,21 @@ flow_params:
 
 diffusion_params:
   model_params:
-    null_cond_prob: 0.1
+    null_cond_prob: 0.0
     use_residual_flow: False
     only_use_flow: False
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:
-    max_epochs: 7844
-    num_repeats: 4
+    max_epochs: 157
+    num_repeats: 200
     scheduler_param:
-      warm_up_steps: [10000]
-      f_start: [1.e-6]
-      f_max: [1.]
-      f_min: [1.]
-    # epoch_milestones: [1600, 2000]
+      milestones: [70000, 120000]
+      gamma: 0.8
     lr: 2.0e-4
-    batch_size: 16
-    valid_batch_size: 64
-    dataloader_workers: 6
+    batch_size: 64
+    valid_batch_size: 32
+    dataloader_workers: 20
     print_freq: 100
     save_img_freq: 1000
     save_vid_freq: 1000

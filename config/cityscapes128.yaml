@@ -8,7 +8,7 @@
 experiment_name: cityscapes128
 
 dataset_params:
-  root_dir: /mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5/
+  root_dir: /home/u1120230288/zzc/data/video_prediction/dataset/Cityscapes_h5
   # u8:  /mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5/
   # u11: /mnt/sda/hjy/Cityscapes/Cityscapes128_h5/
   # u12: /mnt/sda/hjy/cityscapes/cityscapes_h5/
@@ -32,10 +32,10 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 2
-    pred_frames: 5
+    pred_frames: 4
   valid_params:
     total_videos: 256
-    type: val
+    type: test
     cond_frames: 2
     pred_frames: 28
 
@@ -49,7 +49,7 @@ flow_params:
       block_expansion: 32
       max_features: 1024
       num_blocks: 5
-      bg_type: 'affine' # 'zero', 'shift', 'affine', 'perspective'
+      bg_type: 'perspective' # 'zero', 'shift', 'affine', 'perspective'
     region_predictor_params:
       temperature: 0.1
       block_expansion: 32
@@ -105,15 +105,15 @@ diffusion_params:
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:
-    max_epochs: 108
-    num_repeats: 40
+    max_epochs: 100000
+    num_repeats: 1
     scheduler_param:
-      milestones: [70000, 120000]
-      gamma: 0.5
-    lr: 4.0e-4
-    batch_size: 64
-    valid_batch_size: 256
-    dataloader_workers: 8
+      milestones: [100000, 150000]
+      gamma: 0.75
+    lr: 1.2e-4
+    batch_size: 32
+    valid_batch_size: 8
+    dataloader_workers: 32
     print_freq: 100
     save_img_freq: 1000
     save_vid_freq: 1000

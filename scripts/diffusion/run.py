@@ -37,14 +37,14 @@ if __name__ == '__main__':
     parser.add_argument("--set-start", default=True)
     parser.add_argument("--start-step", default=0, type=int)
     parser.add_argument("--log_dir",default='./logs_training/diffusion', help="path to log into")
-    parser.add_argument("--config",default="./config/kth64.yaml",help="path to config")
+    parser.add_argument("--config",default="./config/smmnist64.yaml",help="path to config")
     parser.add_argument("--device_ids", default="0,1", type=lambda x: list(map(int, x.split(','))),
                         help="Names of the devices comma separated.")
     parser.add_argument("--random-seed", type=int, default=1234,
                         help="Random seed to have reproducible results.")
     parser.add_argument("--checkpoint", default="")
     parser.add_argument("--flowae_checkpoint", # use the flowae_checkpoint pretrained model provided by Snap
-                        default="./logs_training/flow/kth64_test/snapshots/RegionMM.pth",
+                        default="/mnt/rhdd/zzc/data/video_prediction/flow_pretrained/better/smmnist64/snapshots/RegionMM.pth",
                         help="path to flowae_checkpoint checkpoint")
     parser.add_argument("--verbose", default=False, help="Print model architecture")
     parser.add_argument("--fp16", default=False)
