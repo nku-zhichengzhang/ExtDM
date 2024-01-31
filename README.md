@@ -1,4 +1,4 @@
-# FlowDM: Diffusion Models in Compressed Motion Space for Video Prediction
+# [CVPRxx] ExtDM: Dual Distribution Extrapolation Diffusion Model for Video Prediction
 
 ## Install
 
