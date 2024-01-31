@@ -66,26 +66,31 @@ def make_h5_from_kth(kth_dir, split_dir, image_size=64, out_dir='./h5_ds', vids_
         dataste_dir = out_dir + '/' + type
         h5_maker = KTH_HDF5Maker(dataste_dir, num_per_shard=vids_per_shard, force=force_h5, video=True)
         count = 0
-        try:
-            with open(f"{split_dir}/{type}.txt", "r") as f:
-                lines = f.read().splitlines()
+        # try:
+        with open(f"{split_dir}/{type}.txt", "r") as f:
+            lines = f.read().splitlines()
 
-            for line in tqdm(lines):
+        isSplit = len(lines[0].split(' ')) > 1
+        
+        for line in tqdm(lines):
+            if isSplit:
+                path, start, end = line.split(' ')
+                path = os.path.join(kth_dir, path)
+                frames = read_video(path, image_size)
+                frames = frames[int(start):int(end)]
+            else:
                 path = os.path.join(kth_dir, line)
                 frames = read_video(path, image_size)
-                h5_maker.add_data(frames, dtype='uint8')
-                count += 1
-                
-        except StopIteration:
-            break
-
-        except (KeyboardInterrupt, SystemExit):
-            print("Ctrl+C!!")
-            break
-
-        except:
-            e = sys.exc_info()[0]
-            print("ERROR:", e)
+            h5_maker.add_data(frames, dtype='uint8')
+            count += 1
+        # except StopIteration:
+        #     break
+        # except (KeyboardInterrupt, SystemExit):
+        #     print("Ctrl+C!!")
+        #     break
+        # except:
+        #     e = sys.exc_info()[0]
+        #     print("ERROR:", e)
 
         h5_maker.close()
     print(f"process {type} done")
@@ -107,5 +112,5 @@ if __name__ == "__main__":
 
 # Example:
 # cd /home/ubuntu11/zzc/code/videoprediction/pred-vdm/data/KTH
-# dataset_root=/home/ubuntu11/zzc/data/KTH
-# python 03_kth_convert.py --split_dir ./ --image_size 64 --kth_dir $dataset_root/raw --out_dir $dataset_root/pred-vdm/processed --force_h5 False
+# dataset_root=/mnt/rhdd/zzc/data/video_prediction/KTH/
+# python 03_kth_convert.py --split_dir ./mixed_setting --image_size 64 --kth_dir $dataset_root/raw --out_dir $dataset_root/mixed_processed --force_h5 False

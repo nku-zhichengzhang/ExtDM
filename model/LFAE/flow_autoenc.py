@@ -47,7 +47,6 @@ class FlowAE(nn.Module):
                                         driving_region_params=self.driving_region_params, bg_params=bg_params)
         self.generated.update({'source_region_params': source_region_params,
                                'driving_region_params': self.driving_region_params})
-
     def set_train_input(self, ref_img, dri_img):
         self.ref_img = ref_img.cuda()
         self.dri_img = dri_img.cuda()

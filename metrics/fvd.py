@@ -4,6 +4,7 @@ import math
 import os.path as osp
 import math
 import torch.nn.functional as F
+from tqdm import tqdm
 
 # try:
 #     from torchvision.models.utils import load_state_dict_from_url
@@ -186,70 +187,70 @@ def preprocess_single(video, resolution=224, sequence_length=None):
     return video.contiguous()
 
 
-def get_logits(i3d, videos, device):
-    #assert videos.shape[0] % 2 == 0
-    logits = torch.empty(0, 400)
-    with torch.no_grad():
-        for i in range(len(videos)):
-            # logits.append(i3d(preprocess_single(videos[i]).unsqueeze(0).to(device)).detach().cpu())
-            logits = torch.vstack([logits, i3d(preprocess_single(videos[i]).unsqueeze(0).to(device)).detach().cpu()])
-    # logits = torch.cat(logits, dim=0)
-    return logits
+# def get_logits(i3d, videos, device):
+#     #assert videos.shape[0] % 2 == 0
+#     logits = torch.empty(0, 400)
+#     with torch.no_grad():
+#         for i in range(len(videos)):
+#             # logits.append(i3d(preprocess_single(videos[i]).unsqueeze(0).to(device)).detach().cpu())
+#             logits = torch.vstack([logits, i3d(preprocess_single(videos[i]).unsqueeze(0).to(device)).detach().cpu()])
+#     # logits = torch.cat(logits, dim=0)
+#     return logits
 
 
-def get_fvd_logits(videos, i3d, device):
-    # videos in [0, 1] as torch tensor BCTHW
-    # videos = [preprocess_single(video) for video in videos]
-    embeddings = get_logits(i3d, videos, device)
-    return embeddings
+# def get_fvd_logits(videos, i3d, device):
+#     # videos in [0, 1] as torch tensor BCTHW
+#     # videos = [preprocess_single(video) for video in videos]
+#     embeddings = get_logits(i3d, videos, device)
+#     return embeddings
 
 
-# https://github.com/tensorflow/gan/blob/de4b8da3853058ea380a6152bd3bd454013bf619/tensorflow_gan/python/eval/classifier_metrics.py#L161
-def _symmetric_matrix_square_root(mat, eps=1e-10):
-    u, s, v = torch.linalg.svd(mat)
-    si = torch.where(s < eps, s, torch.sqrt(s))
-    return torch.matmul(torch.matmul(u, torch.diag(si)), v.t())
+# # https://github.com/tensorflow/gan/blob/de4b8da3853058ea380a6152bd3bd454013bf619/tensorflow_gan/python/eval/classifier_metrics.py#L161
+# def _symmetric_matrix_square_root(mat, eps=1e-10):
+#     u, s, v = torch.linalg.svd(mat)
+#     si = torch.where(s < eps, s, torch.sqrt(s))
+#     return torch.matmul(torch.matmul(u, torch.diag(si)), v.t())
 
 
-# https://github.com/tensorflow/gan/blob/de4b8da3853058ea380a6152bd3bd454013bf619/tensorflow_gan/python/eval/classifier_metrics.py#L400
-def trace_sqrt_product(sigma, sigma_v):
-    sqrt_sigma = _symmetric_matrix_square_root(sigma)
-    sqrt_a_sigmav_a = torch.matmul(sqrt_sigma, torch.matmul(sigma_v, sqrt_sigma))
-    return torch.trace(_symmetric_matrix_square_root(sqrt_a_sigmav_a))
+# # https://github.com/tensorflow/gan/blob/de4b8da3853058ea380a6152bd3bd454013bf619/tensorflow_gan/python/eval/classifier_metrics.py#L400
+# def trace_sqrt_product(sigma, sigma_v):
+#     sqrt_sigma = _symmetric_matrix_square_root(sigma)
+#     sqrt_a_sigmav_a = torch.matmul(sqrt_sigma, torch.matmul(sigma_v, sqrt_sigma))
+#     return torch.trace(_symmetric_matrix_square_root(sqrt_a_sigmav_a))
 
 
-# https://discuss.pytorch.org/t/covariance-and-gradient-support/16217/2
-def cov(m, rowvar=False):
-    '''Estimate a covariance matrix given data.
+# # https://discuss.pytorch.org/t/covariance-and-gradient-support/16217/2
+# def cov(m, rowvar=False):
+#     '''Estimate a covariance matrix given data.
 
-    Covariance indicates the level to which two variables vary together.
-    If we examine N-dimensional samples, `X = [x_1, x_2, ... x_N]^T`,
-    then the covariance matrix element `C_{ij}` is the covariance of
-    `x_i` and `x_j`. The element `C_{ii}` is the variance of `x_i`.
+#     Covariance indicates the level to which two variables vary together.
+#     If we examine N-dimensional samples, `X = [x_1, x_2, ... x_N]^T`,
+#     then the covariance matrix element `C_{ij}` is the covariance of
+#     `x_i` and `x_j`. The element `C_{ii}` is the variance of `x_i`.
 
-    Args:
-        m: A 1-D or 2-D array containing multiple variables and observations.
-            Each row of `m` represents a variable, and each column a single
-            observation of all those variables.
-        rowvar: If `rowvar` is True, then each row represents a
-            variable, with observations in the columns. Otherwise, the
-            relationship is transposed: each column represents a variable,
-            while the rows contain observations.
+#     Args:
+#         m: A 1-D or 2-D array containing multiple variables and observations.
+#             Each row of `m` represents a variable, and each column a single
+#             observation of all those variables.
+#         rowvar: If `rowvar` is True, then each row represents a
+#             variable, with observations in the columns. Otherwise, the
+#             relationship is transposed: each column represents a variable,
+#             while the rows contain observations.
 
-    Returns:
-        The covariance matrix of the variables.
-    '''
-    if m.dim() > 2:
-        raise ValueError('m has more than 2 dimensions')
-    if m.dim() < 2:
-        m = m.view(1, -1)
-    if not rowvar and m.size(0) != 1:
-        m = m.t()
+#     Returns:
+#         The covariance matrix of the variables.
+#     '''
+#     if m.dim() > 2:
+#         raise ValueError('m has more than 2 dimensions')
+#     if m.dim() < 2:
+#         m = m.view(1, -1)
+#     if not rowvar and m.size(0) != 1:
+#         m = m.t()
 
-    fact = 1.0 / (m.size(1) - 1) # unbiased estimate
-    m -= torch.mean(m, dim=1, keepdim=True)
-    mt = m.t()  # if complex: mt = m.t().conj()
-    return fact * m.matmul(mt).squeeze()
+#     fact = 1.0 / (m.size(1) - 1) # unbiased estimate
+#     m -= torch.mean(m, dim=1, keepdim=True)
+#     mt = m.t()  # if complex: mt = m.t().conj()
+#     return fact * m.matmul(mt).squeeze()
 
 
 # def frechet_distance(x1, x2):

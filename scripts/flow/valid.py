@@ -96,7 +96,7 @@ if __name__ == "__main__":
                                     image_size=args.input_size,
                                     num_frames=args.cond_frames+args.pred_frames,
                                     total_videos=args.num_videos,
-                                    random_time=True
+                                    random_time=False
                                 ),
                                 batch_size=args.batch_size,
                                 shuffle=False, 
@@ -236,16 +236,12 @@ if __name__ == "__main__":
     videos1 = origin_videos
     videos2 = result_videos
 
-    for i in range(2, 18):
-        print(i, calculate_fvd1(videos1, videos2, device, mini_bs=i))
-    
     print("[fvd    ]", calculate_fvd1(videos1, videos2, device, mini_bs=10))
     videos1 = videos1[:, args.cond_frames:]
     videos2 = videos2[:, args.cond_frames:]
     print("[ssim   ]", calculate_ssim1(videos1, videos2)[0])
     print("[psnr   ]", calculate_psnr1(videos1, videos2)[0])
     print("[lpips  ]", calculate_lpips1(videos1, videos2, device)[0])
-
 
     print("loss for prediction: %.5f" % (out_loss/(num_sample*args.input_size*args.input_size*3)))
     print("loss for warping: %.5f" % (warp_loss/(num_sample*args.input_size*args.input_size*3)))

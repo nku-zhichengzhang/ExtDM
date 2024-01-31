@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
+# from torch import autograd
 
 import torch.backends.cudnn as cudnn
 from utils.seed import setup_seed
@@ -62,6 +63,7 @@ def train(
         total_videos=dataset_params['valid_params']['total_videos'],
         num_frames=dataset_params['valid_params']['cond_frames'] + dataset_params['valid_params']['pred_frames'], 
         image_size=dataset_params['frame_shape'], 
+        random_horizontal_flip=dataset_params['augmentation_params']['flip_param']['horizontal_flip']
     )
 
     # 计算一个 epoch 有多少 step 
@@ -105,6 +107,7 @@ def train(
                 optimizer.load_state_dict(ckpt['optimizer'])
             except:
                 optimizer.load_state_dict(ckpt['optimizer'].state_dict())
+    
     scheduler = MultiStepLR(optimizer, last_epoch=start_step - 1, **train_params['scheduler_param'])
     
     if 'num_repeats' in train_params or train_params['num_repeats'] != 1:
@@ -147,6 +150,9 @@ def train(
             data_time.update(timeit.default_timer() - iter_end)
             
             optimizer.zero_grad()
+            
+            # with autograd.detect_anomaly():
+                
             losses, generated = model(x)
 
             # print(losses['perceptual'].mean().item())
@@ -160,6 +166,7 @@ def train(
             loss = loss_perceptual + loss_equivariance_shift + loss_equivariance_affine
             
             loss.backward()
+                
             optimizer.step()
 
             batch_time.update(timeit.default_timer() - iter_end)
@@ -224,7 +231,7 @@ def train(
                     checkpoint_save_path
                 )
                 
-            if actual_step % train_params["update_ckpt_freq"] == 0:
+            if actual_step % train_params["update_ckpt_freq"] == 0 and cnt != 0:
                 print('updating snapshot...')
                 checkpoint_save_path=os.path.join(config["snapshots"], 'RegionMM.pth')
                 torch.save({'example': actual_step * train_params["batch_size"],

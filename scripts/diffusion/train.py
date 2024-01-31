@@ -3,7 +3,7 @@ import os.path
 import numpy as np
 import math
 import sys
-
+from shutil import copy2
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
 
@@ -26,9 +26,10 @@ import imageio
 import torch.backends.cudnn as cudnn
 from data.video_dataset import VideoDataset, dataset2videos
 
-from model.DM.video_flow_diffusion_model_pred_condframe_temp import FlowDiffusion
-# from model.newDM.new_video_flow_diffusion_model import FlowDiffusion
-# from model.BaseDM.VideoFlowDiffusion import FlowDiffusion
+# from model.BaseDM_adaptor.VideoFlowDiffusion_multi import FlowDiffusion
+# from model.BaseDM_adaptor.VideoFlowDiffusion_multi1248 import FlowDiffusion
+# from model.BaseDM_adaptor_for_MACs.VideoFlowDiffusion_multi_w_ref import FlowDiffusion
+from model.BaseDM_adaptor.VideoFlowDiffusion_multi_w_ref_u22 import FlowDiffusion
 
 def train(
         config, 
@@ -48,6 +49,14 @@ def train(
         is_train=True,
     )
 
+    def count_parameters(model):
+        res = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"count_training_parameters: {res}")
+        res = sum(p.numel() for p in model.parameters())
+        print(f"count_all_parameters:      {res}")
+    
+    count_parameters(model)
+
     model.cuda()
 
     train_dataset = VideoDataset(
@@ -63,6 +72,7 @@ def train(
         image_size=dataset_params['frame_shape'],
         num_frames=dataset_params['valid_params']['cond_frames'] + dataset_params['valid_params']['pred_frames'], 
         total_videos=dataset_params['valid_params']['total_videos'],
+        random_time=False
     )
 
     # 计算一个 epoch 有多少 step 
@@ -85,13 +95,14 @@ def train(
 
     start_epoch = 0
     start_step = 0
+    best_fvd = 1e5
 
     if checkpoint is not None:
         if os.path.isfile(checkpoint):
             print("=> loading checkpoint '{}'".format(checkpoint))
             ckpt = torch.load(checkpoint)
             if config["set_start"]:
-                start_step = int(math.ceil(ckpt['example'] / train_params['batch_size']))
+                start_step = int(math.ceil(ckpt['example'] / train_params['batch_size'])) - 1
                 start_epoch = ckpt['epoch']
 
                 print("start_step", start_step)
@@ -104,6 +115,7 @@ def train(
             print("=> loaded checkpoint '{}'".format(checkpoint))
             if "optimizer" in list(ckpt.keys()):
                 optimizer.load_state_dict(ckpt['optimizer'])
+                
         else:
             print("=> no checkpoint found at '{}'".format(checkpoint))
     else:
@@ -186,7 +198,7 @@ def train(
                 loss_.backward()
             else:
                 (loss_ + loss_rec + loss_rec_warp).backward()
-                
+
             optimizer.step()
 
             batch_time.update(timeit.default_timer() - iter_end)
@@ -199,9 +211,10 @@ def train(
 
             if actual_step % train_params["print_freq"] == 0:
                 print('iter: [{0}]{1}/{2}\t'
-                      'loss {loss.val:.7f} ({loss.avg:.7f})\t'
-                      'loss_rec {loss_rec.val:.4f} ({loss_rec.avg:.4f})\t'
-                      'loss_warp {loss_warp.val:.4f} ({loss_warp.avg:.4f})'
+                      'loss {loss.val:.3f} ({loss.avg:.3f})\t'
+                      'loss_rec {loss_rec.val:.3f} ({loss_rec.avg:.3f})\t'
+                      'loss_warp {loss_warp.val:.3f} ({loss_warp.avg:.3f})\t'
+                      'time {batch_time.val:.2f}({batch_time.avg:.2f})'
                     .format(
                     cnt, actual_step, final_step,
                     batch_time=batch_time,
@@ -340,6 +353,11 @@ def train(
                     },
                     checkpoint_save_path)
                 metrics = valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step)
+                
+                if metrics['metrics/fvd'] < best_fvd:
+                    best_fvd = metrics['metrics/fvd']
+                    copy2(os.path.join(config["snapshots"], 'flowdiff.pth'), os.path.join(config["snapshots"], f'flowdiff_best_{best_fvd:.3f}.pth'))
+                    
                 wandb.log(metrics)
 
             if actual_step >= final_step:
@@ -409,7 +427,7 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         
         for i_autoreg in range(NUM_AUTOREG):
             i_pred_video = model.sample_one_video(cond_scale=1.0, real_vid=i_real_vids.cuda())['sample_out_vid'].clone().detach().cpu()
-            print(f'[{i_autoreg}/{NUM_AUTOREG}] i_pred_video: {i_pred_video[:,:,-pred_frames:].shape}')
+            print(f'[{i_autoreg+1}/{NUM_AUTOREG}] i_pred_video: {i_pred_video[:,:,-pred_frames:].shape}')
             pred_video.append(i_pred_video[:,:,-pred_frames:])
             i_real_vids = i_pred_video[:,:,-cond_frames:]
 
@@ -418,27 +436,29 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         res_video = torch.cat([real_vids[:, :, :cond_frames], pred_video[:, :, :total_pred_frames]], dim=2)
         result_videos.append(res_video)
 
+        print(f'[{i_iter+1}/{NUM_ITER}] generated.')
+
     origin_videos = torch.cat(origin_videos)
     result_videos = torch.cat(result_videos)
 
     origin_videos = rearrange(origin_videos, 'b c t h w -> b t c h w')
     result_videos = rearrange(result_videos, 'b c t h w -> b t c h w')
     
-    # from utils.visualize import visualize
-    # visualize(
-    #     save_path=f"{log_dir}/video_result",
-    #     origin=origin_videos,
-    #     result=result_videos,
-    #     save_pic_num=8,
-    #     select_method='linspace',
-    #     grid_nrow=4,
-    #     save_gif_grid=False,
-    #     save_gif=True,
-    #     save_pic_row=False,
-    #     save_pic=False,
-    #     epoch_or_step_num=actual_step, 
-    #     cond_frame_num=cond_frames,
-    # )
+    from utils.visualize import visualize
+    visualize(
+        save_path=f"{log_dir}/video_result",
+        origin=origin_videos,
+        result=result_videos,
+        save_pic_num=8,
+        select_method='linspace',
+        grid_nrow=4,
+        save_gif_grid=True,
+        save_gif=True,
+        save_pic_row=False,
+        save_pic=False,
+        epoch_or_step_num=actual_step, 
+        cond_frame_num=cond_frames,
+    )
 
     from metrics.calculate_fvd import calculate_fvd,calculate_fvd1
     from metrics.calculate_psnr import calculate_psnr,calculate_psnr1

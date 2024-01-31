@@ -45,7 +45,7 @@ def trans(x):
     return x
 
 def calculate_ssim(videos1, videos2):
-    print("calculate_ssim...")
+    # print("calculate_ssim...")
 
     # videos [batch_size, timestamps, channel, h, w]
     
@@ -56,7 +56,8 @@ def calculate_ssim(videos1, videos2):
 
     ssim_results = []
     
-    for video_num in tqdm(range(videos1.shape[0])):
+    for video_num in range(videos1.shape[0]):
+    # for video_num in tqdm(range(videos1.shape[0])):
         # get a video
         # video [timestamps, channel, h, w]
         video1 = videos1[video_num]
@@ -99,8 +100,8 @@ def calculate_ssim1(videos1, videos2):
     videos1 = trans(videos1)
     videos2 = trans(videos2)
     ssim_results = []
-    # for video_num in range(videos1.shape[0]):
-    for video_num in tqdm(range(videos1.shape[0])):
+    for video_num in range(videos1.shape[0]):
+    # for video_num in tqdm(range(videos1.shape[0])):
         video1 = videos1[video_num]
         video2 = videos2[video_num]
         ssim_results_of_a_video = []
@@ -112,22 +113,40 @@ def calculate_ssim1(videos1, videos2):
     ssim_results = np.array(ssim_results)
     return np.mean(ssim_results), np.std(ssim_results)
 
+def calculate_ssim2(videos1, videos2):
+    assert videos1.shape == videos2.shape
+    videos1 = trans(videos1)
+    videos2 = trans(videos2)
+    ssim_results = []
+    for video_num in range(videos1.shape[0]):
+    # for video_num in tqdm(range(videos1.shape[0])):
+        video1 = videos1[video_num]
+        video2 = videos2[video_num]
+        ssim_results_of_a_video = []
+        for clip_timestamp in range(len(video1)):
+            img1 = video1[clip_timestamp].cpu().numpy()
+            img2 = video2[clip_timestamp].cpu().numpy()
+            ssim_results_of_a_video.append(calculate_ssim_function(img1, img2))
+        ssim_results.append(ssim_results_of_a_video)
+    ssim_results = np.array(ssim_results)
+    # print(np.mean(ssim_results,axis=-1))
+    return np.max(np.mean(ssim_results,axis=-1))
+
 # test code / using example
 
 def main():
     NUMBER_OF_VIDEOS = 8
-    VIDEO_LENGTH = 60
+    VIDEO_LENGTH = 20
     CHANNEL = 3
     SIZE = 64
-    CALCULATE_PER_FRAME = 5
-    CALCULATE_FINAL = True
     videos1 = torch.zeros(NUMBER_OF_VIDEOS, VIDEO_LENGTH, CHANNEL, SIZE, SIZE, requires_grad=False)
     videos2 = torch.zeros(NUMBER_OF_VIDEOS, VIDEO_LENGTH, CHANNEL, SIZE, SIZE, requires_grad=False)
     device = torch.device("cuda")
 
     import json
-    result = calculate_ssim(videos1, videos2, CALCULATE_PER_FRAME, CALCULATE_FINAL)
-    print(json.dumps(result, indent=4))
+    result = calculate_ssim2(videos1, videos2)
+    # print(json.dumps(result, indent=4))
+    print(result)
 
 if __name__ == "__main__":
     main()

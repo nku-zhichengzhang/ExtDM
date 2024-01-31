@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 from data.augmentation import AllAugmentationTransform
 import cv2
 from data.h5 import HDF5Dataset
-
+from torchvision import transforms
 
 def resize(im, desired_size, interpolation):
     old_size = im.shape[:2]
@@ -95,18 +95,33 @@ class TwoFramesDataset(Dataset):
                  min_frame_distance=10,
                  augmentation_params=None):
         self.root_dir = root_dir
+        self.type = type
         self.frame_shape = frame_shape
         self.total_videos = total_videos
         self.max_frame_distance = max_frame_distance
         self.min_frame_distance = min_frame_distance
-        self.videos_ds = HDF5Dataset(os.path.join(root_dir, type))
+
+        if "UCF" in self.root_dir:
+            self.videos_ds = HDF5Dataset(self.root_dir)
+            # Train
+            # self.num_train_vids = 9624
+            # self.num_test_vids = 3696   # -> 369 : https://arxiv.org/pdf/1511.05440.pdf takes every 10th test video
+            with self.videos_ds.opener(self.videos_ds.shard_paths[0]) as f:
+                self.num_train_vids = f['num_train'][()]
+                self.num_test_vids = f['num_test'][()]//10  # https://arxiv.org/pdf/1511.05440.pdf takes every 10th test video
+        else:
+            self.videos_ds = HDF5Dataset(os.path.join(self.root_dir, type))
+        
         self.transform = AllAugmentationTransform(**augmentation_params)
         
     def __len__(self):
         if self.total_videos > 0:
             return self.total_videos
         else:
-            return len(self.videos_ds)
+            if "UCF" in self.root_dir:
+                return self.num_train_vids if self.type=='train' else self.num_test_vids
+            else:
+                return len(self.videos_ds)
     
     def len_of_vid(self, index):
         video_index = index % self.__len__()
@@ -116,7 +131,10 @@ class TwoFramesDataset(Dataset):
         return video_len
     
     def max_index(self):
-        return len(self.videos_ds)
+        if "UCF" in self.root_dir:
+            return self.num_train_vids if self.type=='train' else self.num_test_vids
+        else:  
+            return len(self.videos_ds)
     
     # def get_frames(self, shard_idx, idx_in_shard, frame_idxs):
     #     frames = []
@@ -130,24 +148,50 @@ class TwoFramesDataset(Dataset):
     #     return frames
     
     def __getitem__(self, index):
-        video_index = round(index / (self.__len__() - 1) * (self.max_index() - 1))
-        shard_idx, idx_in_shard = self.videos_ds.get_indices(video_index)
-        
-        with self.videos_ds.opener(self.videos_ds.shard_paths[shard_idx]) as f:
-            num_frames = f['len'][str(idx_in_shard)][()]
+        if "UCF" in self.root_dir:
+            video_index = round(index / (self.__len__() - 1) * (self.max_index() - 1))
 
-            # 抽取两帧
-            frame_idxs = np.sort(np.random.choice(num_frames, replace=True, size=2))
-            while (frame_idxs[1] - frame_idxs[0] < self.min_frame_distance) or (frame_idxs[1] - frame_idxs[0] > self.max_frame_distance):
+            if not self.type=='train':
+                video_index = video_index * 10 + self.num_train_vids    # https://arxiv.org/pdf/1511.05440.pdf takes every 10th test video
+            shard_idx, idx_in_shard = self.videos_ds.get_indices(video_index)
+
+            crop_c = np.random.randint(int(self.frame_shape/240*320) - self.frame_shape) if self.type=='train' else int((self.frame_shape/240*320 - self.frame_shape)/2)
+
+            with self.videos_ds.opener(self.videos_ds.shard_paths[shard_idx]) as f:
+                num_frames = f['len'][str(idx_in_shard)][()]
+
+                # 抽取两帧
                 frame_idxs = np.sort(np.random.choice(num_frames, replace=True, size=2))
+                while (frame_idxs[1] - frame_idxs[0] < self.min_frame_distance) or (frame_idxs[1] - frame_idxs[0] > self.max_frame_distance):
+                    frame_idxs = np.sort(np.random.choice(num_frames, replace=True, size=2))
+                
+                video_array = []
+                for frame_idx in frame_idxs:
+                    frame = f[str(idx_in_shard)][str(frame_idx)][()]
+                    frame = frame[:, crop_c:crop_c + self.frame_shape]
+                    if len(frame.shape) == 2 or frame.shape[2] == 1:
+                        video_array.append(gray2rgb(frame))
+                    else:
+                        video_array.append(frame)
+        else:
+            video_index = round(index / (self.__len__() - 1) * (self.max_index() - 1))
+            shard_idx, idx_in_shard = self.videos_ds.get_indices(video_index)
             
-            video_array = []
-            for frame_idx in frame_idxs:
-                frame = f[str(idx_in_shard)][str(frame_idx)][()]
-                if len(frame.shape) == 2 or frame.shape[2] == 1:
-                    video_array.append(gray2rgb(frame))
-                else:
-                    video_array.append(frame)
+            with self.videos_ds.opener(self.videos_ds.shard_paths[shard_idx]) as f:
+                num_frames = f['len'][str(idx_in_shard)][()]
+
+                # 抽取两帧
+                frame_idxs = np.sort(np.random.choice(num_frames, replace=True, size=2))
+                while (frame_idxs[1] - frame_idxs[0] < self.min_frame_distance) or (frame_idxs[1] - frame_idxs[0] > self.max_frame_distance):
+                    frame_idxs = np.sort(np.random.choice(num_frames, replace=True, size=2))
+                
+                video_array = []
+                for frame_idx in frame_idxs:
+                    frame = f[str(idx_in_shard)][str(frame_idx)][()]
+                    if len(frame.shape) == 2 or frame.shape[2] == 1:
+                        video_array.append(gray2rgb(frame))
+                    else:
+                        video_array.append(frame)
 
         video_array = self.transform(video_array)
 
@@ -188,7 +232,8 @@ if __name__ == "__main__":
         # "/home/ubuntu11/zzc/code/videoprediction/EDM/config/kth64.yaml",
         # "/home/ubuntu11/zzc/code/videoprediction/EDM/config/bair64.yaml",
         # "/home/ubuntu11/zzc/code/videoprediction/EDM/config/cityscapes128.yaml",
-        "/home/ubuntu11/zzc/code/videoprediction/EDM/config/carla128.yaml"
+        # "/home/ubuntu11/zzc/code/videoprediction/EDM/config/carla128.yaml",
+        "/home/ubuntu/zzc/code/EDM_hpc/config/ucf101_64.yaml"
     ]
 
     total_videos = -1
@@ -212,6 +257,7 @@ if __name__ == "__main__":
             augmentation_params=dataset_params['augmentation_params']
         )
         
+        print(len(dataset))
         print("*"*20)
         data = dataset[10]
         print("source ", data['source'].shape)

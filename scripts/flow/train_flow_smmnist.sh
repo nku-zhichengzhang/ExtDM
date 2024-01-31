@@ -2,11 +2,12 @@
 
 # 从头训练
 python ./scripts/flow/run.py \
-    --checkpoint /mnt/sda/hjy/pth/taichi256.pth \
     --config ./config/smmnist64.yaml \
     --log_dir ./logs_training/flow \
     --device_ids 0,1 \
     --postfix test 
+
+# --checkpoint /mnt/sda/hjy/pth/taichi256.pth \
 
 # 预训练
 # python ./scripts/flow/run.py \

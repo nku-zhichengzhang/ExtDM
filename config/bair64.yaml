@@ -8,12 +8,17 @@
 experiment_name: bair
 
 dataset_params:
-  root_dir: /mnt/sda/hjy/bair/BAIR_h5/
+  root_dir: /home/u1120230288/zzc/data/video_prediction/dataset/BAIR_h5
   # u8:  /mnt/rhdd/zzc/data/video_prediction/BAIR/BAIR_h5/
   # u11: /mnt/sda/hjy/bair/BAIR_h5/
   # u12: /mnt/sda/hjy/bair/bair_h5/
-  # u15:
+  # u15: 
   # u16: /mnt/sda/hjy/bair/bair_h5/ 
+  # u20: /home/ubuntu/zzc/data/bair_h5/ 
+  # u22: /home/ubuntu/zzc/data/video_prediction/bair_h5/ 
+  # cmm4:/home/lz/zzc/data/video_prediction/bair_h5
+  # cmm21:/home/suuser/zzc/data/video_prediction/bair_h5
+
   frame_shape: 64
   augmentation_params:
     flip_param:
@@ -29,7 +34,7 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 2
-    pred_frames: 2
+    pred_frames: 10
   valid_params:
     total_videos: 256
     type: test
@@ -93,7 +98,6 @@ flow_params:
       equivariance_affine: 10
   
 # FIXME: 修改成 LDM 更标准的 diffusion 格式
-
 diffusion_params:
   model_params:
     null_cond_prob: 0.0
@@ -105,12 +109,12 @@ diffusion_params:
     max_epochs: 148
     num_repeats: 2
     scheduler_param:
-      milestones: [70000, 120000]
-      gamma: 0.5
-    lr: 4.0e-4
-    batch_size: 64
-    valid_batch_size: 256
-    dataloader_workers: 8
+      milestones: [70000, 150000]
+      gamma: 0.8
+    lr: 1.5e-4
+    batch_size: 48
+    valid_batch_size: 48
+    dataloader_workers: 32
     print_freq: 100
     save_img_freq: 1000
     save_vid_freq: 1000

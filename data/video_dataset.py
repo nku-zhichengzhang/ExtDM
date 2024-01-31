@@ -8,7 +8,7 @@ import torch.utils.data as data
 
 import cv2
 # import torchvision.transforms.functional as F
-# from torchvision import transforms
+from torchvision import transforms
 
 from data.h5 import HDF5Dataset
 
@@ -57,22 +57,37 @@ class VideoDataset(data.Dataset):
         image_size=64, 
         random_time=True,
         # color_jitter=None, 
-        # random_horizontal_flip=False
+        random_horizontal_flip=False
     ):
         super(VideoDataset, self).__init__()
+        self.data_dir = data_dir
+        self.type = type
         self.num_frames = num_frames
         self.image_size = image_size
         self.total_videos = total_videos
         self.random_time = random_time
-        # self.random_horizontal_flip = random_horizontal_flip
+        self.random_horizontal_flip = random_horizontal_flip
         # self.jitter = transforms.ColorJitter(hue=color_jitter) if color_jitter else None
-        self.videos_ds = HDF5Dataset(os.path.join(data_dir, type))
+        
+        if "UCF" in self.data_dir:
+            self.videos_ds = HDF5Dataset(self.data_dir)
+            # Train
+            # self.num_train_vids = 9624
+            # self.num_test_vids = 3696   # -> 369 : https://arxiv.org/pdf/1511.05440.pdf takes every 10th test video
+            with self.videos_ds.opener(self.videos_ds.shard_paths[0]) as f:
+                self.num_train_vids = f['num_train'][()]
+                self.num_test_vids = f['num_test'][()]//10  # https://arxiv.org/pdf/1511.05440.pdf takes every 10th test video
+        else:
+            self.videos_ds = HDF5Dataset(os.path.join(self.data_dir, type))
         
     def __len__(self):
         if self.total_videos > 0:
             return self.total_videos
         else:
-            return len(self.videos_ds)
+            if "UCF" in self.data_dir:
+                return self.num_train_vids if self.type=='train' else self.num_test_vids
+            else:
+                return len(self.videos_ds)
 
     def len_of_vid(self, index):
         video_index = index % self.__len__()
@@ -82,41 +97,70 @@ class VideoDataset(data.Dataset):
         return video_len
 
     def max_index(self):
-        return len(self.videos_ds)
+        if "UCF" in self.data_dir:
+            return self.num_train_vids if self.type=='train' else self.num_test_vids
+        else:  
+            return len(self.videos_ds)
 
     def __getitem__(self, index, time_idx=0):
-        video_index = round(index / (self.__len__() - 1) * (self.max_index() - 1))
-        shard_idx, idx_in_shard = self.videos_ds.get_indices(video_index)
-        
-        prefinals = []
-        with self.videos_ds.opener(self.videos_ds.shard_paths[shard_idx]) as f:
-            total_num_frames = f['len'][str(idx_in_shard)][()]
+        if "UCF" in self.data_dir:
+            video_index = round(index / (self.__len__() - 1) * (self.max_index() - 1))
+            if not self.type=='train':
+                video_index = video_index * 10 + self.num_train_vids    # https://arxiv.org/pdf/1511.05440.pdf takes every 10th test video
+            shard_idx, idx_in_shard = self.videos_ds.get_indices(video_index)
 
-            # sample frames
-            if self.random_time and total_num_frames > self.num_frames:
-                # sampling start frames
-                time_idx = np.random.choice(total_num_frames - self.num_frames)
-            # read frames
-            for i in range(time_idx, min(time_idx + self.num_frames, total_num_frames)):
-                img = f[str(idx_in_shard)][str(i)][()]
-                arr = torch.tensor(img)/255.0
-                prefinals.append(arr)
+            # random crop
+            crop_c = np.random.randint(int(self.image_size/240*320) - self.image_size) if self.type=='train' else int((self.image_size/240*320 - self.image_size)/2)
 
-        data = torch.stack(prefinals)
-        
-        # if self.jitter:
-        #     data = self.jitter(data)
-        
-        # if random_horizontal_flip and np.random.random() >= 0.5: 
-        #     data = data[::-1]
-        
-        return data, video_index
+            # random horizontal flip
+            flip_p = np.random.randint(2) == 0 if self.random_horizontal_flip else 0
+
+            # read data
+            prefinals = []
+            with self.videos_ds.opener(self.videos_ds.shard_paths[shard_idx]) as f:
+                total_num_frames = f['len'][str(idx_in_shard)][()]
+
+                # sample frames
+                if self.random_time and total_num_frames > self.num_frames:
+                    # sampling start frames
+                    time_idx = np.random.choice(total_num_frames - self.num_frames)
+                # read frames
+                for i in range(time_idx, min(time_idx + self.num_frames, total_num_frames)):
+                    img = f[str(idx_in_shard)][str(i)][()]
+                    arr = transforms.RandomHorizontalFlip(flip_p)(transforms.ToTensor()(img[:, crop_c:crop_c + self.image_size]))
+                    prefinals.append(arr)
+
+            data = torch.stack(prefinals)
+            data = rearrange(data, "t c h w -> t h w c")
+            return data, video_index
+
+        else:
+            video_index = round(index / (self.__len__() - 1) * (self.max_index() - 1))
+            shard_idx, idx_in_shard = self.videos_ds.get_indices(video_index)
+            
+            prefinals = []
+            with self.videos_ds.opener(self.videos_ds.shard_paths[shard_idx]) as f:
+                total_num_frames = f['len'][str(idx_in_shard)][()]
+
+                # sample frames
+                if self.random_time and total_num_frames > self.num_frames:
+                    # sampling start frames
+                    time_idx = np.random.choice(total_num_frames - self.num_frames)
+                # read frames
+                for i in range(time_idx, min(time_idx + self.num_frames, total_num_frames)):
+                    img = f[str(idx_in_shard)][str(i)][()]
+                    arr = torch.tensor(img)/255.0
+                    prefinals.append(arr)
+
+            data = torch.stack(prefinals)
+            return data, video_index
     
 def check_video_data_structure():
     import mediapy as media
 
-    dataset_root = dataset_root = "/mnt/sda/hjy/fdm/CARLA_Town_01_h5" # u11 - xs
-    
+    # dataset_root = "/mnt/sda/hjy/fdm/CARLA_Town_01_h5" # u11 - xs
+    dataset_root = "/home/ubuntu/zzc/data/video_prediction/UCF101/UCF101_h5" # u11 - xs
+
     dataset_type = 'train'
     train_dataset = VideoDataset(dataset_root, dataset_type)
     print(len(train_dataset))

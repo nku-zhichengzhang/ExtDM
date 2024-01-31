@@ -85,6 +85,15 @@ class Generator(nn.Module):
         else:
             out = input_previous if input_previous is not None else input_skip
         return out
+    
+    def forward_bottle(self, source_image):
+        out = self.first(source_image)
+        skips = [out]
+        for i in range(len(self.down_blocks)):
+            out = self.down_blocks[i](out)
+            skips.append(out)
+
+        return out
 
     def forward(self, source_image, driving_region_params, source_region_params, bg_params=None):
         out = self.first(source_image)
