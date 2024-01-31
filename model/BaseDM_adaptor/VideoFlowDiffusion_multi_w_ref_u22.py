@@ -353,6 +353,3 @@ if __name__ == "__main__":
     model.eval()
     model.set_sample_input(sample_img=ref_img, sample_text=ref_text)
     model.sample_one_video(cond_scale=1.0)
-
-
-

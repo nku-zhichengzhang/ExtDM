@@ -62,7 +62,6 @@ class RegionPredictor(nn.Module):
         region = region.unsqueeze(-1)
         grid = make_coordinate_grid(shape[2:], region.type()).unsqueeze_(0).unsqueeze_(0)
         mean = (region * grid).sum(dim=(2, 3))
-
         region_params = {'shift': mean}
 
         if self.pca_based:

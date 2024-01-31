@@ -1,6 +1,7 @@
 # train a LFAE
 # this code is based on RegionMM (MRAA): https://github.com/snap-research/articulated-animation
 import os.path
+from shutil import copy2
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
@@ -84,6 +85,7 @@ def train(
 
     start_epoch = 0
     start_step = 0
+    best_fvd = 1e5
 
     if checkpoint != "":
         ckpt = torch.load(checkpoint)
@@ -95,8 +97,14 @@ def train(
             print("start_epoch", start_epoch)
         
         if config['dataset_params']['frame_shape'] == 64:
-            ckpt['generator']['pixelwise_flow_predictor.down.weight'] = generator.pixelwise_flow_predictor.down.weight
-            ckpt['region_predictor']['down.weight'] = region_predictor.down.weight
+            if config['flow_params']['model_params']['region_predictor_params']['scale_factor'] != 1.0 and \
+                    config['flow_params']['model_params']['generator_params']['pixelwise_flow_predictor_params']['scale_factor'] != 1.0:
+                ckpt['generator']['pixelwise_flow_predictor.down.weight'] = generator.pixelwise_flow_predictor.down.weight
+                ckpt['region_predictor']['down.weight'] = region_predictor.down.weight
+            else: 
+                print('scale == 1.0, delete down')
+                del ckpt['generator']['pixelwise_flow_predictor.down.weight']
+                del ckpt['region_predictor']['down.weight']
         
         generator.load_state_dict(ckpt['generator'])
         region_predictor.load_state_dict(ckpt['region_predictor'])
@@ -242,6 +250,11 @@ def train(
                             'optimizer': optimizer.state_dict()},
                            checkpoint_save_path)
                 metrics = valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step)
+                
+                if metrics['metrics/fvd'] < best_fvd:
+                    best_fvd = metrics['metrics/fvd']
+                    copy2(os.path.join(config["snapshots"], 'RegionMM.pth'), os.path.join(config["snapshots"], f'RegionMM_best_{best_fvd:.3f}.pth'))
+                
                 wandb.log(metrics)
 
             if actual_step >= final_step:
@@ -288,8 +301,6 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
     NUM_ITER = ceil(dataset_params['valid_params']['total_videos'] / train_params['valid_batch_size'])
     cond_frames = dataset_params['valid_params']['cond_frames']
     pred_frames = dataset_params['valid_params']['pred_frames']
-    pred_frames_per_step = dataset_params['train_params']['pred_frames']
-    NUM_STAGE = ceil(pred_frames / pred_frames_per_step)
 
     origin_videos = []
     result_videos = []
@@ -312,6 +323,8 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         real_vids = total_vids[:, :, cond_frames:, :, :]
 
         # use first frame of each video as reference frame (vids: B C T H W)
+        # 在 flowae 阶段，固定 ref_imgs 为初始帧，不随自回归变化
+        ref_imgs = cond_vids[:, :, -1, :, :].clone().detach()
 
         assert real_vids.size(2) == pred_frames
 
@@ -320,22 +333,15 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         warped_grid_list = []
         conf_map_list = []
 
-        for _ in range(NUM_STAGE):
-            if len(out_img_list)==0:
-                ref_imgs = cond_vids[:, :, -1, :, :].clone().detach()
-            else:
-                ref_imgs = out_img_list[-1]
-            for frame_idx in range(pred_frames_per_step):
-                dri_imgs = real_vids[:, :, frame_idx, :, :]
-                with torch.no_grad():
-                    model.set_train_input(ref_img=ref_imgs, dri_img=dri_imgs)
-                    model.forward()
-                out_img_list.append(model.generated['prediction'].clone().detach())
-                warped_img_list.append(model.generated['deformed'].clone().detach())
-                warped_grid_list.append(model.generated['optical_flow'].clone().detach())
-                conf_map_list.append(model.generated['occlusion_map'].clone().detach())
-                if len(out_img_list)==pred_frames:
-                    break
+        for frame_idx in range(pred_frames):
+            dri_imgs = real_vids[:, :, frame_idx, :, :]
+            with torch.no_grad():
+                model.set_train_input(ref_img=ref_imgs, dri_img=dri_imgs)
+                model.forward()
+            out_img_list.append(model.generated['prediction'].clone().detach())
+            warped_img_list.append(model.generated['deformed'].clone().detach())
+            warped_grid_list.append(model.generated['optical_flow'].clone().detach())
+            conf_map_list.append(model.generated['occlusion_map'].clone().detach())
 
         out_img_list_tensor = torch.stack(out_img_list, dim=0)
         warped_img_list_tensor = torch.stack(warped_img_list, dim=0)
@@ -371,7 +377,6 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
 
         print('Test:[{0}/{1}]\t'.format(i_iter, NUM_ITER))
             
-
     origin_videos = torch.cat(origin_videos)
     result_videos = torch.cat(result_videos)
     print(origin_videos.shape, result_videos.shape)
@@ -384,7 +389,7 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
         save_pic_num=8,
         select_method='linspace',
         grid_nrow=4,
-        save_gif_grid=False,
+        save_gif_grid=True,
         save_gif=True,
         save_pic_row=False,
         save_pic=False,

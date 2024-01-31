@@ -67,4 +67,4 @@ CUDA_VISIBLE_DEVICES=0 \
     --flowae_checkpoint $AE_CKPT/Cityscapes/$AE_NAME/snapshots/$AE_STEP.pth \
     --config            $DM_CKPT/Cityscapes/$DM_NAME/cityscapes128.yaml \
     --checkpoint        $DM_CKPT/Cityscapes/$DM_NAME/snapshots/$DM_STEP.pth \
-    --log_dir           ./logs_validation/pretrained_diffusion/Cityscapes/${DM_NAME}_${DM_STEP}_${SEED}_${NUM_SAMPLE}_with_ooc
+    --log_dir           ./logs_validation/pretrained_diffusion/Cityscapes/${DM_NAME}_${DM_STEP}_${SEED}_${NUM_SAMPLE}

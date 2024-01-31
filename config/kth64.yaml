@@ -106,12 +106,12 @@ diffusion_params:
     sampling_timesteps: 10
     loss_type: 'l2'
   train_params:
-    max_epochs: 3342 # 13368
+    max_epochs: 13342 # 13368
     num_repeats: 1
     scheduler_param:
       milestones: [70000, 150000]
       gamma: 0.8
-    lr: 5.0e-5
+    lr: 2.0e-4
     batch_size: 8
     valid_batch_size: 8
     dataloader_workers: 16

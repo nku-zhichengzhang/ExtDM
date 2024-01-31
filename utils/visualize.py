@@ -54,9 +54,9 @@ def visualize(save_path, origin, result, epoch_or_step_num=0, cond_frame_num=10,
         
         for i in range(save_pic_num):
             for t in range(origin.shape[1]):
-                save_path = os.path.join(save_pic_path, str(index[i]), "origin")
-                os.makedirs(save_path, exist_ok=True)
-                media.write_image(os.path.join(save_path, f"pic_origin_{index[i]}_{t}.png"), origin_output[i, t].squeeze().numpy())
+                # save_path = os.path.join(save_pic_path, str(index[i]), "origin")
+                # os.makedirs(save_path, exist_ok=True)
+                # media.write_image(os.path.join(save_path, f"pic_origin_{index[i]}_{t}.png"), origin_output[i, t].squeeze().numpy())
                 save_path = os.path.join(save_pic_path, str(index[i]), "result")
                 os.makedirs(save_path, exist_ok=True)
                 media.write_image(os.path.join(save_path, f"pic_result_{index[i]}_{t}.png"), result_output[i, t].squeeze().numpy())

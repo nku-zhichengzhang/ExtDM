@@ -83,20 +83,13 @@ def main():
     VIDEO_LENGTH = 30
     CHANNEL = 3
     SIZE = 64
-    videos1 = torch.zeros(256, VIDEO_LENGTH, CHANNEL, SIZE, SIZE, requires_grad=False)
-    videos2 = torch.ones(256*10, VIDEO_LENGTH, CHANNEL, SIZE, SIZE, requires_grad=False)
+    videos1 = torch.zeros(NUMBER_OF_VIDEOS, VIDEO_LENGTH, CHANNEL, SIZE, SIZE, requires_grad=False)
+    videos2 = torch.ones(NUMBER_OF_VIDEOS, VIDEO_LENGTH, CHANNEL, SIZE, SIZE, requires_grad=False)
     device = torch.device("cuda")
     # device = torch.device("cpu")
-
-    # for mini_bs in range(2, 20, 2):
-        # print(mini_bs, calculate_fvd1(videos1,videos2,device, mini_bs))
+    mini_bs=2
 
     print(calculate_fvd1(videos1,videos2,device, mini_bs=16))
 
 if __name__ == "__main__":
     main()
-
-    # init memory 
-    # 46.2 23.07
-    # 65.0 23.34
-    # 185  24.34

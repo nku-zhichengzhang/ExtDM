@@ -8,7 +8,7 @@
 experiment_name: ucf101_64
 
 dataset_params:
-  root_dir: /home/u1120230288/zzc/data/video_prediction/dataset/UCF101_h5
+  root_dir: /home/ubuntu/zzc/data/video_prediction/UCF101/UCF101_h5
   frame_shape: 64
   augmentation_params:
     flip_param:
@@ -24,7 +24,7 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 4
-    pred_frames: 4
+    pred_frames: 8
   valid_params:
     total_videos: 256
     type: test
@@ -97,19 +97,19 @@ diffusion_params:
     loss_type: 'l2'
   train_params:
     max_epochs: 21
-    num_repeats: 54
+    num_repeats: 32
     scheduler_param:
-      milestones: [48600, 60000]
+      milestones: [100000, 150000]
       gamma: 0.8
     lr: 2.0e-4
-    batch_size: 54 # train len 9624
+    batch_size: 32
     valid_batch_size: 64
-    dataloader_workers: 4
-    print_freq: 10
-    save_img_freq: 500
-    save_vid_freq: 500
-    update_ckpt_freq: 500
-    save_ckpt_freq: 500
+    dataloader_workers: 8
+    print_freq: 100
+    save_img_freq: 2000
+    save_vid_freq: 2000
+    update_ckpt_freq: 2000
+    save_ckpt_freq: 2000
 
 visualizer_params:
   kp_size: 2

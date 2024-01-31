@@ -9,3 +9,4 @@ video2video/*
 metrics_carla/
 output_tensor/*
 output_model/*
+edm.egg-info/*
