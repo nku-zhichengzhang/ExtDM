@@ -29,7 +29,7 @@ dataset_params:
       saturation: 0.1
       hue: 0.1
   min_frame_distance: 0
-  max_frame_distance: 50
+  max_frame_distance: 20
   train_params:
     type: train
     cond_frames: 10
@@ -75,8 +75,8 @@ flow_params:
         use_covar_heatmap: True
         estimate_occlusion_map: True
   train_params:
-    max_epochs: 1070
-    num_repeats: 100
+    max_epochs: 1072
+    num_repeats: 25
     scheduler_param:
       milestones: [150000]
       gamma: 0.5

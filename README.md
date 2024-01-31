@@ -3,8 +3,13 @@
 ## Install
 
 ```
-conda env create -f environment.yml
-conda activate edm
+conda create -n EDM python=3.9
+conda activate EDM
+conda install ffmpeg
+pip install torch==1.13.1+cu116 torchvision==0.14.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
+pip install einops einops_exts rotary_embedding_torch timm==0.4.5
+pip install imageio scikit-image opencv-python flow_vis matplotlib mediapy lpips
+pip install h5py PyYAML tqdm wandb scipy==1.9.3
 pip install -e .
 ```
 

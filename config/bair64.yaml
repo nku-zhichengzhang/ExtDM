@@ -12,7 +12,7 @@ dataset_params:
   # u8:  /mnt/rhdd/zzc/data/video_prediction/BAIR/BAIR_h5/
   # u11: /mnt/sda/hjy/bair/BAIR_h5/
   # u12: /mnt/sda/hjy/bair/bair_h5/
-  # u15: 
+  # u15:  
   # u16: /mnt/sda/hjy/bair/bair_h5/ 
   # u20: /home/ubuntu/zzc/data/bair_h5/ 
   # u22: /home/ubuntu/zzc/data/video_prediction/bair_h5/ 
