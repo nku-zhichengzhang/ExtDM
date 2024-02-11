@@ -8,15 +8,9 @@
 experiment_name: kth64
 
 dataset_params:
-  root_dir: /home/u1120230288/zzc/data/video_prediction/dataset/KTH_h5
-  # u8:  /mnt/rhdd/zzc/data/video_prediction/KTH/processed/
-  # u11: /mnt/sda/hjy/kth/processed/
-  # u12: /mnt/sda/hjy/kth/kth_h5/
-  # u15: /mnt/sda/hjy/data/kth/kth_h5/
-  # u16: /mnt/sda/hjy/kth/kth_h5/
-  # u22: /home/ubuntu/zzc/data/video_prediction/kth_h5/ 
-  # cmm4:/home/lz/zzc/data/video_prediction/kth_h5
-  # cmm21:/home/suuser/zzc/data/video_prediction/kth_h5/
+  root_dir: /home/ubuntu/zzc/data/video_prediction/dataset_h5/kth_h5
+  # u20: /home/ubuntu/zzc/data/video_prediction/dataset_h5/kth_h5
+  # u22: /home/ubuntu/zzc/data/video_prediction/dataset_h5/kth_h5
   # hjy_hpc:/home/u1120230288/zzc/data/video_prediction/KTH_h5/
   frame_shape: 64
   augmentation_params:
@@ -29,11 +23,11 @@ dataset_params:
       saturation: 0.1
       hue: 0.1
   min_frame_distance: 0
-  max_frame_distance: 50
+  max_frame_distance: 40
   train_params:
     type: train
     cond_frames: 10
-    pred_frames: 20
+    pred_frames: 10
   valid_params:
     total_videos: 256
     type: valid
@@ -42,7 +36,7 @@ dataset_params:
 
 flow_params:
   model_params:
-    num_regions: 20
+    num_regions: 64
     num_channels: 3
     estimate_affine: True
     revert_axis_swap: True
@@ -80,14 +74,14 @@ flow_params:
     scheduler_param:
       milestones: [150000]
       gamma: 0.5
-    lr: 2.0e-4
+    lr: 2.0e-5
     batch_size: 256
     valid_batch_size: 256
-    dataloader_workers: 32
-    print_freq: 500
+    dataloader_workers: 4
+    print_freq: 100
     save_img_freq: 2500
     update_ckpt_freq: 2500
-    save_ckpt_freq: 5000
+    save_ckpt_freq: 999999999
     scales: [1, 0.5, 0.25]
     transform_params:
       sigma_affine: 0.05
@@ -105,21 +99,22 @@ diffusion_params:
     only_use_flow: False
     sampling_timesteps: 10
     loss_type: 'l2'
+    ada_layers: 'auto'
   train_params:
-    max_epochs: 13342 # 13368
-    num_repeats: 1
+    max_epochs: 17 # len 479
+    num_repeats: 100
     scheduler_param:
-      milestones: [70000, 150000]
-      gamma: 0.8
-    lr: 2.0e-4
-    batch_size: 8
-    valid_batch_size: 8
-    dataloader_workers: 16
+      milestones: [100000]
+      gamma: 0.5
+    lr: 2.0e-5
+    batch_size: 4
+    valid_batch_size: 32
+    dataloader_workers: 8
     print_freq: 100
-    save_img_freq: 1000
-    save_vid_freq: 1000
-    update_ckpt_freq: 1000
-    save_ckpt_freq: 5000
+    save_img_freq: 2000
+    save_vid_freq: 2000
+    update_ckpt_freq: 2000
+    save_ckpt_freq: 999999999
 
 visualizer_params:
   kp_size: 2

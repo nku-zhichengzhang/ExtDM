@@ -641,9 +641,10 @@ class Inception(nn.Module):
 #         y = rearrange(z, 'b (t c) h w -> b c t h w', c=C)
 #         return y
 
-def compute_layer(tm, tp):
+def compute_layer(tm, tp, l=None):
     factor = (tp+1)/tm
     num_layers = max(1, int(math.ceil(math.log2(factor))))
+    num_layers = l if l else num_layers
     num_frames = (2**num_layers - 1)*tm
     return num_layers, num_frames
     
@@ -693,12 +694,12 @@ class adaptor(nn.Module):
         return x[:,:,tm:]
 
 class MotionAdaptor(nn.Module):
-    def __init__(self, dim, tc, tp):
+    def __init__(self, dim, tc, tp, l=None):
         super(MotionAdaptor, self).__init__()
         self.tm = tc
         self.tp = tp
         self.dim = dim
-        num_layers, num_frames = compute_layer(self.tm, self.tp)
+        num_layers, num_frames = compute_layer(self.tm, self.tp, l)
         self.adaptors = adaptor(dim, num_layers)
         self.Tmodulator = nn.Conv2d(dim*num_frames, dim*self.tp, 1)
         self.fuser = PreNorm(dim*2, nn.Conv3d(dim*2,dim,1))
@@ -884,6 +885,7 @@ class Unet3D(nn.Module):
             padding_mode="zeros",
             cond_num=0,
             pred_num=0,
+            l=None,
             framesize=32,
     ):
         self.tc = cond_num
@@ -902,7 +904,7 @@ class Unet3D(nn.Module):
         # TODO: 
         temporal_attn = lambda dim: EinopsToAndFrom('b c t h w', 'b (h w) t c',
                                                     AttentionLayer(dim, heads=attn_heads, dim_head=attn_dim_head, rotary_emb=rotary_emb))
-        m_adaptor = lambda dim: MotionAdaptor(dim, tc=cond_num, tp=pred_num)
+        m_adaptor = lambda dim: MotionAdaptor(dim, tc=cond_num, tp=pred_num, l=l)
         
         # initial conv
         init_dim = default(init_dim, dim)

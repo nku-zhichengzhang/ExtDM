@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
 
 from torch.optim.lr_scheduler import LambdaLR
-from utils.lr_scheduler import LambdaLinearScheduler
 
 from data.two_frames_dataset import DatasetRepeater
 
@@ -115,7 +114,11 @@ def train(
             print("=> loaded checkpoint '{}'".format(checkpoint))
             if "optimizer" in list(ckpt.keys()):
                 optimizer.load_state_dict(ckpt['optimizer'])
-                
+            # 在加载检查点后手动设置学习率
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = train_params['lr']
+            del ckpt, model_ckpt
+            torch.cuda.empty_cache()
         else:
             print("=> no checkpoint found at '{}'".format(checkpoint))
     else:
@@ -356,7 +359,7 @@ def train(
                 
                 if metrics['metrics/fvd'] < best_fvd:
                     best_fvd = metrics['metrics/fvd']
-                    copy2(os.path.join(config["snapshots"], 'flowdiff.pth'), os.path.join(config["snapshots"], f'flowdiff_best_{best_fvd:.3f}.pth'))
+                    copy2(os.path.join(config["snapshots"], 'flowdiff.pth'), os.path.join(config["snapshots"], f'flowdiff_best_{actual_step}_{best_fvd:.3f}.pth'))
                     
                 wandb.log(metrics)
 

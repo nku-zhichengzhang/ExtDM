@@ -1,5 +1,3 @@
 Metadata-Version: 2.1
 Name: edm
 Version: 1.0.0
-Requires-Dist: torch
-Requires-Dist: numpy

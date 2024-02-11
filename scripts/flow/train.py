@@ -115,6 +115,10 @@ def train(
                 optimizer.load_state_dict(ckpt['optimizer'])
             except:
                 optimizer.load_state_dict(ckpt['optimizer'].state_dict())
+                        
+        # 在加载检查点后手动设置学习率
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = train_params['lr']
     
     scheduler = MultiStepLR(optimizer, last_epoch=start_step - 1, **train_params['scheduler_param'])
     
@@ -253,7 +257,7 @@ def train(
                 
                 if metrics['metrics/fvd'] < best_fvd:
                     best_fvd = metrics['metrics/fvd']
-                    copy2(os.path.join(config["snapshots"], 'RegionMM.pth'), os.path.join(config["snapshots"], f'RegionMM_best_{best_fvd:.3f}.pth'))
+                    copy2(os.path.join(config["snapshots"], 'RegionMM.pth'), os.path.join(config["snapshots"], f'RegionMM_best_{actual_step}_{best_fvd:.3f}.pth'))
                 
                 wandb.log(metrics)
 
@@ -412,10 +416,10 @@ def valid(config, valid_dataloader, checkpoint_save_path, log_dir, actual_step):
     psnr  = calculate_psnr1(videos1, videos2)[0]
     lpips = calculate_lpips1(videos1, videos2, device)[0]
 
-    # print("[fvd    ]", fvd)
-    # print("[ssim   ]", ssim)
-    # print("[psnr   ]", psnr)
-    # print("[lpips  ]", lpips)
+    print("[fvd    ]", fvd)
+    print("[ssim   ]", ssim)
+    print("[psnr   ]", psnr)
+    print("[lpips  ]", lpips)
 
     return {
         'actual_step': actual_step,
