@@ -166,7 +166,7 @@ def train(
     actual_step = start_step
     final_step = steps_per_epoch * train_params["max_epochs"]
 
-    print("epoch %d, lr= %.7f" % (epoch_cnt, optimizer.param_groups[0]["lr"]))
+    # print("epoch %d, lr= %.7f" % (epoch_cnt, optimizer.param_groups[0]["lr"]))
     
     while actual_step < final_step:
         iter_end = timeit.default_timer()

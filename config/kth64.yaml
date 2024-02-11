@@ -101,19 +101,19 @@ diffusion_params:
     loss_type: 'l2'
     ada_layers: 'auto'
   train_params:
-    max_epochs: 17 # len 479
+    max_epochs: 117 # len 479
     num_repeats: 100
     scheduler_param:
       milestones: [100000]
       gamma: 0.5
-    lr: 2.0e-5
-    batch_size: 4
+    lr: 1.0e-4
+    batch_size: 28
     valid_batch_size: 32
-    dataloader_workers: 8
+    dataloader_workers: 16
     print_freq: 100
-    save_img_freq: 2000
-    save_vid_freq: 2000
-    update_ckpt_freq: 2000
+    save_img_freq: 1000
+    save_vid_freq: 1000
+    update_ckpt_freq: 1000
     save_ckpt_freq: 999999999
 
 visualizer_params:

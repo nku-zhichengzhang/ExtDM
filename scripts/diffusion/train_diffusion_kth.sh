@@ -24,14 +24,14 @@ AE_STEP=RegionMM_best_147500_178.423
         # RegionMM_best_147500_178.423
 
 # 从头训练
-CUDA_VISIBLE_DEVICES=3 \
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
 python ./scripts/diffusion/run.py \
     --random-seed $SEED \
     --flowae_checkpoint $AE_CKPT/KTH/$AE_NAME/snapshots/$AE_STEP.pth \
     --config ./config/kth64.yaml \
     --log_dir ./logs_training/diffusion/KTH/ \
-    --device_ids 0 \
-    --postfix DM_Batch4_lr2e-5_region64_c10p10_STW_adaptor_scale0.50_multi_traj_ada
+    --device_ids 0,1,2,3 \
+    --postfix DM_Batch28_lr1e-4_region64_c10p10_STW_adaptor_scale0.50_multi_traj_ada_ch256
 
 # --flowae_checkpoint $FLOWCKPT/kth64_FlowAE_Batch128_lr1e-4_Region20_affine_scale1.00_resume/snapshots/RegionMM_best_157.143.pth \
 # --flowae_checkpoint $FLOWCKPT/kth64_FlowAE_Batch256_lr2e-4_Region20_affine_Max40_2/snapshots/RegionMM_0256_S220000.pth \
