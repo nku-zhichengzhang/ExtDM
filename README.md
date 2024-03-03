@@ -1,4 +1,4 @@
-# [CVPRxx] ExtDM: Dual Distribution Extrapolation Diffusion Model for Video Prediction
+# [CVPR24] ExtDM: Dual Distribution Extrapolation Diffusion Model for Video Prediction
 
 ## Install
 
