@@ -40,7 +40,7 @@ class FlowDiffusion(nn.Module):
         dataset_params = config['dataset_params']
 
         self.estimate_occlusion_map = flow_params["generator_params"]["pixelwise_flow_predictor_params"]["estimate_occlusion_map"]
-
+        
         self.use_residual_flow = diffusion_params['use_residual_flow']
         self.only_use_flow = diffusion_params['only_use_flow']
         self.withFea = withFea
@@ -86,6 +86,7 @@ class FlowDiffusion(nn.Module):
             cond_num=dataset_params['train_params']['cond_frames'],
             pred_num=dataset_params['train_params']['pred_frames'],
             framesize=int(dataset_params['frame_shape']*flow_params['region_predictor_params']['scale_factor']),
+            l=diffusion_params['ada_layers'] if diffusion_params['ada_layers']!='auto' else None,
         )
 
         self.diffusion = GaussianDiffusion(
@@ -354,6 +355,3 @@ if __name__ == "__main__":
     model.eval()
     model.set_sample_input(sample_img=ref_img, sample_text=ref_text)
     model.sample_one_video(cond_scale=1.0)
-
-
-

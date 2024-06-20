@@ -152,8 +152,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     make_h5_from_kth(out_dir=args.out_dir, mnist_dir=args.mnist_dir, image_size=args.image_size, vids_per_shard=args.vids_per_shard, force_h5=args.force_h5)
-
-# Example:
-# cd /home/ubuntu/zzc/vidpred/CVPR23_LFDM/LFAE/data/SMMNIST
-# dataset_root=/mnt/hdd/zzc/data/video_prediction/SMMNIST
-# python 01_mnist_download_and_convert.py --image_size 64 --mnist_dir $dataset_root --out_dir $dataset_root/processed --force_h5 False

@@ -14,7 +14,3 @@ else
   done
 
 fi
-
-# cd /home/ubuntu15/zzc/code/videoprediction/pred-vdm/data/KTH
-# bash /home/ubuntu15/zzc/code/videoprediction/pred-vdm/data/KTH/01_kth_download.sh /home/ubuntu15/zzc/data/KTH/
-

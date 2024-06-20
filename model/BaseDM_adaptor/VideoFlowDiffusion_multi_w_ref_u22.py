@@ -16,7 +16,6 @@ from model.LFAE.region_predictor import RegionPredictor
 
 # from model.BaseDM.DenoiseNet import Unet3D
 from model.BaseDM_adaptor.DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_ada_u22 import Unet3D
-# from model.BaseDM_adaptor.DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_u22 import Unet3D
 from model.BaseDM_adaptor.Diffusion import GaussianDiffusion
 
 class FlowDiffusion(nn.Module):
@@ -85,6 +84,7 @@ class FlowDiffusion(nn.Module):
             cond_num=dataset_params['train_params']['cond_frames'],
             pred_num=dataset_params['train_params']['pred_frames'],
             framesize=int(dataset_params['frame_shape']*flow_params['region_predictor_params']['scale_factor']),
+            l=diffusion_params['ada_layers'] if diffusion_params['ada_layers']!='auto' else None,
         )
 
         self.diffusion = GaussianDiffusion(

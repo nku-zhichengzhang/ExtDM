@@ -111,6 +111,4 @@ if __name__ == "__main__":
     make_h5_from_kth(out_dir=args.out_dir, kth_dir=args.kth_dir, split_dir=args.split_dir, image_size=args.image_size, vids_per_shard=args.vids_per_shard, force_h5=args.force_h5)
 
 # Example:
-# cd /home/ubuntu11/zzc/code/videoprediction/pred-vdm/data/KTH
-# dataset_root=/mnt/rhdd/zzc/data/video_prediction/KTH/
-# python 03_kth_convert.py --split_dir ./mixed_setting --image_size 64 --kth_dir $dataset_root/raw --out_dir $dataset_root/mixed_processed --force_h5 False
+

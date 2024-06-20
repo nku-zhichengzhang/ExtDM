@@ -176,9 +176,6 @@ def convert_with_official_train_and_mcvd_valid_split():
     print('Converting', data_split, 'done.')
     print("")
 
-# convert_MCVD_setting()
+convert_MCVD_setting()
 # convert_with_official_split()
-convert_with_official_train_and_mcvd_valid_split()
-
-# cd /home/ubuntu15/zzc/code/videoprediction/pred-vdm/data/KTH/
-# python 02_kth_train_val_test_split.py
+# convert_with_official_train_and_mcvd_valid_split()

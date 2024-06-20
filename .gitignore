@@ -10,3 +10,4 @@ metrics_carla/
 output_tensor/*
 output_model/*
 edm.egg-info/*
+data/SMMNIST/stochastic_moving_mnist_edited.py

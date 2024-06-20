@@ -1,0 +1,7 @@
+README.md
+setup.py
+extdm.egg-info/PKG-INFO
+extdm.egg-info/SOURCES.txt
+extdm.egg-info/dependency_links.txt
+extdm.egg-info/requires.txt
+extdm.egg-info/top_level.txt

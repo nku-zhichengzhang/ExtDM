@@ -12,7 +12,7 @@ from einops_exts import rearrange_many
 from rotary_embedding_torch import RotaryEmbedding
 from timm.models.layers import DropPath, trunc_normal_
 from model.DM.text import BERT_MODEL_DIM
-
+from torch.cuda.amp import autocast
 
 # helpers functions
 def exists(x):
@@ -1022,7 +1022,7 @@ class Unet3D(nn.Module):
 
         null_logits = self.forward(*args, null_cond_prob=1., **kwargs)
         return null_logits + (logits - null_logits) * cond_scale
-
+    @autocast()
     def forward(self, x, time, cond_frames, cond_fea=None, cond=None, null_cond_prob=0., none_cond_mask=None):
         # probability at which a given batch sample will focus on the present (0. is all off, 1. is completely arrested attention across time)
         assert not (self.has_cond and not exists(cond)), 'cond must be passed in if cond_dim specified'
