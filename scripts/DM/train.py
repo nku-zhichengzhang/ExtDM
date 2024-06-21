@@ -28,8 +28,8 @@ from data.video_dataset import VideoDataset, dataset2videos
 # from model.BaseDM_adaptor.VideoFlowDiffusion_multi import FlowDiffusion
 # from model.BaseDM_adaptor.VideoFlowDiffusion_multi1248 import FlowDiffusion
 # from model.BaseDM_adaptor_for_MACs.VideoFlowDiffusion_multi_w_ref import FlowDiffusion
-from model.BaseDM_adaptor.VideoFlowDiffusion_multi_w_ref import FlowDiffusion
-# from model.BaseDM_adaptor.VideoFlowDiffusion_multi_w_ref_u22 import FlowDiffusion
+# from model.BaseDM_adaptor.VideoFlowDiffusion_multi_w_ref import FlowDiffusion
+from model.BaseDM_adaptor.VideoFlowDiffusion_multi_w_ref_u22 import FlowDiffusion
 
 def train(
         config, 
@@ -59,8 +59,6 @@ def train(
 
     model.cuda()
     
-    exit()
-
     train_dataset = VideoDataset(
         data_dir=dataset_params['root_dir'],
         type=dataset_params['train_params']['type'], 
@@ -215,7 +213,7 @@ def train(
             losses_rec.update(loss_rec.item(), bs)
             losses_warp.update(loss_rec_warp.item(), bs)
 
-            if actual_step % train_params["print_freq"] == 0:
+            if actual_step % train_params["print_freq"] == 0 and cnt != 0:
                 print('iter: [{0}]{1}/{2}\t'
                       'loss {loss.val:.3f} ({loss.avg:.3f})\t'
                       'loss_rec {loss_rec.val:.3f} ({loss_rec.avg:.3f})\t'
@@ -239,7 +237,7 @@ def train(
                     "batch_time": batch_time.avg
                 })
 
-            if actual_step % train_params['save_img_freq'] == 0:
+            if actual_step % train_params['save_img_freq'] == 0 and cnt != 0:
                 msk_size = ref_imgs.shape[-1]
                 save_src_img = sample_img(ref_imgs)
                 save_tar_img = sample_img(real_vids[:, :, dataset_params['train_params']['cond_frames']+dataset_params['train_params']['pred_frames']//2, :, :])
@@ -285,7 +283,7 @@ def train(
                     "save_img": wandb.Image(new_im)
                 })
 
-            if actual_step % train_params['save_vid_freq'] == 0:
+            if actual_step % train_params['save_vid_freq'] == 0 and cnt != 0:
                 print("saving video...")
                 # num_frames = real_vids.size(2)
                 msk_size = ref_imgs.shape[-1]

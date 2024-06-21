@@ -88,29 +88,6 @@ flow_params:
       perceptual: [10, 10, 10, 10, 10]
       equivariance_shift: 10
       equivariance_affine: 10
-diffusion_params:
-  model_params:
-    null_cond_prob: 0.0
-    use_residual_flow: False
-    only_use_flow: False
-    sampling_timesteps: 10
-    loss_type: 'l2'
-    ada_layers: 'auto'
-  train_params:
-    max_epochs: 21
-    num_repeats: 32
-    scheduler_param:
-      milestones: [100000, 150000]
-      gamma: 0.8
-    lr: 2.0e-4
-    batch_size: 32
-    valid_batch_size: 64
-    dataloader_workers: 8
-    print_freq: 100
-    save_img_freq: 2000
-    save_vid_freq: 2000
-    update_ckpt_freq: 2000
-    save_ckpt_freq: 2000
 
 visualizer_params:
   kp_size: 2

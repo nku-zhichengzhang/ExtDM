@@ -1,6 +1,8 @@
-logs_training/*
-logs_validation/*
-__pycache__
+logs_training/AE/*
+logs_training/DM/*
+logs_validation/AE/*
+logs_validation/DM/*
+**/__pycache__/**
 wandb
 slurm-*.out
 flow_output
@@ -9,5 +11,3 @@ video2video/*
 metrics_carla/
 output_tensor/*
 output_model/*
-edm.egg-info/*
-data/SMMNIST/stochastic_moving_mnist_edited.py

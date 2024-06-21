@@ -5,22 +5,14 @@
 #title, fitness for a particular purpose, non-infringement, or that such code is free of defects, errors or viruses.
 #In no event will Snap Inc. be liable for any damages or losses of any kind arising from the sample code or your use thereof.
 
-experiment_name: cityscapes128
+experiment_name: bair64
 
 dataset_params:
-  root_dir: /home/u1120230288/zzc/data/video_prediction/dataset/Cityscapes_h5
-  # u8:  /mnt/rhdd/zzc/data/video_prediction/Cityscapes/Cityscapes128_h5/
-  # u11: /mnt/sda/hjy/Cityscapes/Cityscapes128_h5/
-  # u12: /mnt/sda/hjy/cityscapes/cityscapes_h5/
-  # u15: /mnt/sda/hjy/data/cityspaces/Cityscapes128_h5/
-  # u16: /mnt/sda/hjy/cityscapes/cityscapes_h5/
-  # u22: /home/ubuntu/zzc/data/video_prediction/cityscapes_h5/ 
-  # cmm4:/home/lz/zzc/data/video_prediction/cityscapes_h5
-  # cmm21:/home/suuser/zzc/data/video_prediction/cityscapes_h5/
-  frame_shape: 128
+  root_dir: /home/ubuntu/zzc/data/video_prediction/dataset_h5/bair_h5
+  frame_shape: 64
   augmentation_params:
     flip_param:
-      horizontal_flip: True
+      horizontal_flip: False
       time_flip: False
     jitter_param:
       brightness: 0.1
@@ -32,7 +24,7 @@ dataset_params:
   train_params:
     type: train
     cond_frames: 2
-    pred_frames: 4
+    pred_frames: 10
   valid_params:
     total_videos: 256
     type: test
@@ -41,7 +33,7 @@ dataset_params:
 
 flow_params:
   model_params:
-    num_regions: 20
+    num_regions: 10
     num_channels: 3
     estimate_affine: True
     revert_axis_swap: True
@@ -49,12 +41,12 @@ flow_params:
       block_expansion: 32
       max_features: 1024
       num_blocks: 5
-      bg_type: 'perspective' # 'zero', 'shift', 'affine', 'perspective'
+      bg_type: 'affine'
     region_predictor_params:
       temperature: 0.1
       block_expansion: 32
       max_features: 1024
-      scale_factor: 0.25
+      scale_factor: 0.5
       num_blocks: 5
       pca_based: True
       pad: 0
@@ -69,25 +61,25 @@ flow_params:
         block_expansion: 64
         max_features: 1024
         num_blocks: 5
-        scale_factor: 0.25
+        scale_factor: 0.5
         use_deformed_source: True
         use_covar_heatmap: True
         estimate_occlusion_map: True
   train_params:
-    max_epochs: 432
-    num_repeats: 20
+    max_epochs: 100
+    num_repeats: 100
     scheduler_param:
-      milestones: [20000, 40000]
+      milestones: [80000]
       gamma: 0.5
     lr: 2.0e-4
-    batch_size: 128
+    batch_size: 100
     valid_batch_size: 256
-    dataloader_workers: 8
-    print_freq: 500
+    dataloader_workers: 4
+    print_freq: 100
     save_img_freq: 2500
     update_ckpt_freq: 2500
-    save_ckpt_freq: 10000
-    scales: [1, 0.5, 0.25, 0.125]
+    save_ckpt_freq: 999999999
+    scales: [1, 0.5, 0.25]
     transform_params:
       sigma_affine: 0.05
       sigma_tps: 0.005
@@ -96,7 +88,7 @@ flow_params:
       perceptual: [10, 10, 10, 10, 10]
       equivariance_shift: 10
       equivariance_affine: 10
-
+  
 diffusion_params:
   model_params:
     null_cond_prob: 0.0
@@ -106,14 +98,14 @@ diffusion_params:
     loss_type: 'l2'
     ada_layers: 'auto'
   train_params:
-    max_epochs: 100000
-    num_repeats: 1
+    max_epochs: 148
+    num_repeats: 2
     scheduler_param:
-      milestones: [100000, 150000]
-      gamma: 0.75
-    lr: 1.2e-4
-    batch_size: 32
-    valid_batch_size: 8
+      milestones: [70000, 150000]
+      gamma: 0.8
+    lr: 1.5e-4
+    batch_size: 48
+    valid_batch_size: 48
     dataloader_workers: 32
     print_freq: 100
     save_img_freq: 1000
