@@ -4,7 +4,6 @@
 # some codes based on https://github.com/lucidrains/video-diffusion-pytorch
 
 import os
-import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -14,10 +13,6 @@ from model.LFAE.generator import Generator
 from model.LFAE.bg_motion_predictor import BGMotionPredictor
 from model.LFAE.region_predictor import RegionPredictor
 
-# from model.BaseDM.DenoiseNet import Unet3D
-# from model.BaseDM_adaptor.DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_u12 import Unet3D
-# from model.BaseDM_adaptor.DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_u22 import Unet3D
-from model.BaseDM_adaptor.DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_ada import Unet3D
 from model.BaseDM_adaptor.Diffusion import GaussianDiffusion
 
 class FlowDiffusion(nn.Module):
@@ -32,6 +27,7 @@ class FlowDiffusion(nn.Module):
             use_deconv=True,
             padding_mode="zeros",
             withFea=True,
+            Unet3D_architecture="DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_ada",
         ):
         super(FlowDiffusion, self).__init__()
         
@@ -72,6 +68,15 @@ class FlowDiffusion(nn.Module):
             self.bg_predictor.eval()
             self.set_requires_grad(self.bg_predictor, False)
 
+        if Unet3D_architecture == "DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_u12":
+            from model.BaseDM_adaptor.DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_u12 import Unet3D
+        elif Unet3D_architecture == "DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_u22":
+            from model.BaseDM_adaptor.DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_u22 import Unet3D
+        elif Unet3D_architecture == "DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_ada":
+            from model.BaseDM_adaptor.DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_ada import Unet3D
+        else:
+            NotImplementedError()
+
         self.unet = Unet3D(
             dim=64,
             channels=256+256,
@@ -85,8 +90,7 @@ class FlowDiffusion(nn.Module):
             padding_mode=padding_mode,
             cond_num=dataset_params['train_params']['cond_frames'],
             pred_num=dataset_params['train_params']['pred_frames'],
-            framesize=int(dataset_params['frame_shape']*flow_params['region_predictor_params']['scale_factor']),
-            l=diffusion_params['ada_layers'] if diffusion_params['ada_layers']!='auto' else None,
+            framesize=int(dataset_params['frame_shape']*flow_params['region_predictor_params']['scale_factor'])
         )
 
         self.diffusion = GaussianDiffusion(

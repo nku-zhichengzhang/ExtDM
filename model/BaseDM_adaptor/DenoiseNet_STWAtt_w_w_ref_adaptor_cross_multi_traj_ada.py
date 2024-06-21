@@ -11,7 +11,7 @@ from einops_exts import rearrange_many
 
 from rotary_embedding_torch import RotaryEmbedding
 from timm.models.layers import DropPath, trunc_normal_
-from model.DM.text import BERT_MODEL_DIM
+from model.BaseDM_adaptor.text import BERT_MODEL_DIM
 
 
 # helpers functions

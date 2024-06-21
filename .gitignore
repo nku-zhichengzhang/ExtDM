@@ -2,6 +2,7 @@ logs_training/AE/*
 logs_training/DM/*
 logs_validation/AE/*
 logs_validation/DM/*
+logs_validation/pretrained_DM/*
 **/__pycache__/**
 wandb
 slurm-*.out

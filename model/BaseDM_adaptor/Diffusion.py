@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 from tqdm import tqdm
 from einops import rearrange
-from model.BaseDM.text import tokenize, bert_embed
+from model.BaseDM_adaptor.text import tokenize, bert_embed
 
 
 # helpers functions

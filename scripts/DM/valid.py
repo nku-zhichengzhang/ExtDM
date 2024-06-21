@@ -1,12 +1,10 @@
 import argparse
 
 import torch
-from torch.utils import data
 import numpy as np
 import torch.backends.cudnn as cudnn
 import os
 import timeit
-import random
 import yaml
 from tqdm import tqdm
 import scipy.stats as st
@@ -16,19 +14,12 @@ from einops import rearrange, repeat
 from torch.utils.data import DataLoader
 
 from data.video_dataset import VideoDataset, dataset2videos
-from model.LFAE.flow_autoenc import FlowAE
-from utils.meter import AverageMeter
 from utils.seed import setup_seed
 
 from metrics.calculate_fvd    import calculate_fvd,   calculate_fvd1, get_feats, calculate_fvd2
 from metrics.calculate_psnr   import calculate_psnr,  calculate_psnr1,  calculate_psnr2
 from metrics.calculate_ssim   import calculate_ssim,  calculate_ssim1,  calculate_ssim2
-from metrics.calculate_lpips  import calculate_lpips, calculate_lpips1, calculate_lpips2, calculate_lpips3
-
-# from model.BaseDM_adaptor.VideoFlowDiffusion_multi import FlowDiffusion
-# from model.BaseDM_adaptor.VideoFlowDiffusion_multi1248 import FlowDiffusion
-# from model.BaseDM_adaptor.VideoFlowDiffusion_multi_w_ref import FlowDiffusion
-from model.BaseDM_adaptor.VideoFlowDiffusion_multi_w_ref_u22 import FlowDiffusion
+from metrics.calculate_lpips  import calculate_lpips, calculate_lpips1, calculate_lpips2
 
 def metric_stuff(metric):
     avg_metric, std_metric = metric.mean().item(), metric.std().item()
@@ -59,6 +50,10 @@ if __name__ == "__main__":
                         type=int, 
                         default=1234,
                         help="Random seed to have reproducible results.")
+    parser.add_argument("--DM_arch", 
+                        type=str)
+    parser.add_argument("--Unet3D_arch", 
+                        type=str)
     parser.add_argument("--dataset_path", 
                         type=str)
     parser.add_argument("--flowae_checkpoint",
@@ -85,10 +80,22 @@ if __name__ == "__main__":
     
     config["flow_params"]["model_params"]["generator_params"]["pixelwise_flow_predictor_params"]["estimate_occlusion_map"] = args.estimate_occlusion_map
 
+    if args.DM_arch == "VideoFlowDiffusion_multi":
+        from model.BaseDM_adaptor.VideoFlowDiffusion_multi import FlowDiffusion
+    elif args.DM_arch == "VideoFlowDiffusion_multi1248":
+        from model.BaseDM_adaptor.VideoFlowDiffusion_multi1248 import FlowDiffusion
+    elif args.DM_arch == "VideoFlowDiffusion_multi_w_ref":
+        from model.BaseDM_adaptor.VideoFlowDiffusion_multi_w_ref import FlowDiffusion
+    elif args.DM_arch == "VideoFlowDiffusion_multi_w_ref_u22":
+        from model.BaseDM_adaptor.VideoFlowDiffusion_multi_w_ref_u22 import FlowDiffusion
+    else:
+        NotImplementedError()
+        
     model = FlowDiffusion(
         config=config,
         pretrained_pth=args.flowae_checkpoint,
         is_train=False,
+        Unet3D_architecture=args.Unet3D_arch
     )
 
     def count_parameters(model):

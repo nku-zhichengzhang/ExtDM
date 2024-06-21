@@ -1,7 +1,7 @@
 # sh ./scripts/AE/valid_AE_smmnist.sh
 
 data_path=/home/ubuntu/zzc/data/video_prediction/dataset_h5
-pretrained_path=/home/ubuntu/zzc/data/video_prediction/FlowAE_pretrained
+pretrained_path=/home/ubuntu/zzc/data/video_prediction/AE_pretrained
 
 python ./scripts/AE/valid.py \
     --cond_frames 1 \
