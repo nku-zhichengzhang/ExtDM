@@ -134,7 +134,7 @@ MAKE SURE YOU HAVE ~20GB SPACE! 6.5GB for the zip file, and 8GB for the unzipped
 ## 🧊 4. Checkpoints
 
 | Dataset    | #Param (M)   | Setup (c->k) | DM Arch. | Unet Arch. | Link & Size |
-| ---------- | :----------: | ------------ | -------- | ---------- | ----------- |
+| :--------: | :----------: | ------------ | -------- | ---------- | :---------: |
 | SMMNIST    | 131.4        | 10 -> 4      |          |            | TODO (M)    |
 |            | 136.8        | 10 -> 5      |          |            | TODO (M)    |
 |            | 163.7        | 10 -> 10     |          |            | TODO (M)    |
