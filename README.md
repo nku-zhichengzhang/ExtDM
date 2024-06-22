@@ -65,7 +65,7 @@ cp /home/<user_name>/anaconda3/envs/ExtDM/lib/libopenh264.so.6 /home/<user_name>
 
 **Overview of the preprocessed dataset:**
 
-| Dataset    | Len (train) | Len (test)           | Avg. Frames (train) | Prediction Setup | Download Link & Size|
+| Dataset    | Len (train) | Len (test)           | Avg. Frames (train) | Pred. Setup (c->p) | Link & Size|
 | ---------- | ----------- | -------------------- | ---------------------- | ---------------- | ------------------------------------------------------------ |
 | SMMNIST    | 60000       | 256                  | 40                     | 10 -> 10         | [google drive](https://drive.google.com/file/d/1nn3yxrKLcRwAkmbHjNQOXuJBTFJzKpIe/view?usp=sharing) (688M) |
 | KTH        | 479         | 120 (sample to 256)  | 483.18                 | 10 -> 30/40      | [google drive](https://drive.google.com/file/d/1h7eOcq-j1hJSrIX6s60T5E0tydI3vbQX/view?usp=sharing) (919M) |
@@ -133,7 +133,18 @@ MAKE SURE YOU HAVE ~20GB SPACE! 6.5GB for the zip file, and 8GB for the unzipped
 
 ## 🧊 4. Checkpoints
 
-[todo]
+| Dataset    | #Param (M) | Pred. Setup (c->k) | DM Arch. | Unet Arch. | Link & Size |
+| ---------- | ---------- | ------------------ | -------- | ---------- | ----------- |
+| SMMNIST    |            |                    |          |            | TODO (M)    |
+|            |            |                    |          |            | TODO (M)    |
+| KTH        |            |                    |          |            | TODO (M)    |
+|            |            |                    |          |            | TODO (M)    |
+| BAIR       |            |                    |          |            | TODO (M)    |
+|            |            |                    |          |            | TODO (M)    |
+| Cityscapes |            |                    |          |            | TODO (M)    |
+|            |            |                    |          |            | TODO (M)    |
+| UCF-101    |            |                    |          |            | TODO (M)    |
+|            |            |                    |          |            | TODO (M)    |
 
 ## 🔬 5. Training & Inference
 
@@ -173,18 +184,33 @@ MAKE SURE YOU HAVE ~20GB SPACE! 6.5GB for the zip file, and 8GB for the unzipped
 
 **DM Training**
 
-```
-- check `./config/[DATASET].yaml`
-- run `sh ./scripts/diffusion/train_diffusion_[DATASET].sh`
+1. check `./config/DM/[DATASET].yaml`: set proper params for `root_dir`,  `max_epochs`, `num_repeats`, `lr`, `batch_size`, etc.
 
-[todo]
-```
+2. run `sh ./scripts/DM/train_DM_[DATASET].sh`
+
+    ```
+    sh ./scripts/DM/train_DM_smmnist.sh
+    sh ./scripts/DM/train_DM_kth.sh
+    sh ./scripts/DM/train_DM_bair.sh
+    sh ./scripts/DM/train_DM_cityscapes.sh
+    sh ./scripts/DM/train_DM_ucf.sh
+    ```
+
+3. you can see your running exp dir in `./logs_training/DM/[DATASET]/[EXP_NAME]`, or see details in wandb panels.
 
 **DM Inference**
 
-```
-[todo]
-```
+1. run `sh ./scripts/DM/train_DM_[DATASET].sh`
+
+    ```
+    sh ./scripts/DM/valid_DM_smmnist.sh
+    sh ./scripts/DM/valid_DM_kth.sh
+    sh ./scripts/DM/valid_DM_bair.sh
+    sh ./scripts/DM/valid_DM_cityscapes.sh
+    sh ./scripts/DM/valid_DM_ucf.sh
+    ```
+
+2. you can see your running exp dir in `./logs_validation/DM/[DATASET]/[EXP_NAME]`.
 
 ## ⭐ 6. Star History
 
