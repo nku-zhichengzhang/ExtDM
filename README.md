@@ -133,18 +133,24 @@ MAKE SURE YOU HAVE ~20GB SPACE! 6.5GB for the zip file, and 8GB for the unzipped
 
 ## 🧊 4. Checkpoints
 
-| Dataset    | #Param (M) | Setup (c->k) | DM Arch. | Unet Arch. | Link & Size |
-| ---------- | ---------- | ------------ | -------- | ---------- | ----------- |
-| SMMNIST    |            |              |          |            | TODO (M)    |
-|            |            |              |          |            | TODO (M)    |
-| KTH        |            |              |          |            | TODO (M)    |
-|            |            |              |          |            | TODO (M)    |
-| BAIR       |            |              |          |            | TODO (M)    |
-|            |            |              |          |            | TODO (M)    |
-| Cityscapes |            |              |          |            | TODO (M)    |
-|            |            |              |          |            | TODO (M)    |
-| UCF-101    |            |              |          |            | TODO (M)    |
-|            |            |              |          |            | TODO (M)    |
+| Dataset    | #Param (M)   | Setup (c->k) | DM Arch. | Unet Arch. | Link & Size |
+| ---------- | :----------: | ------------ | -------- | ---------- | ----------- |
+| SMMNIST    | 131.4        | 10 -> 4      |          |            | TODO (M)    |
+|            | 136.8        | 10 -> 5      |          |            | TODO (M)    |
+|            | 163.7        | 10 -> 10     |          |            | TODO (M)    |
+| KTH        | 100.3        | 10 -> 4      |          |            | TODO (M)    |
+|            | 103.0        | 10 -> 5      |          |            | TODO (M)    |
+|            | 116.6        | 10 -> 10     |          |            | TODO (M)    |
+|            | 254.2        | 10 -> 20     |          |            | TODO (M)    |
+| BAIR       | 100.1        | 2 -> 4       |          |            | TODO (M)    |
+|            | 101.7        | 2 -> 5       |          |            | TODO (M)    |
+|            | 103.2        | 2 -> 7       |          |            | TODO (M)    |
+|            | 132.1        | 2 -> 10      |          |            | TODO (M)    |
+| Cityscapes | 112.0        | 2 -> 4       |          |            | TODO (M)    |
+|            | 113.7        | 2 -> 5       |          |            | TODO (M)    |
+|            | 117.2        | 2 -> 7       |          |            | TODO (M)    |
+|            | 153.6        | 2 -> 10      |          |            | TODO (M)    |
+| UCF-101    | -            | 4 -> 8       |          |            | TODO (M)    |
 
 ## 🔬 5. Training & Inference
 

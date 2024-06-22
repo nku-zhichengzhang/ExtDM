@@ -83,7 +83,6 @@ class FlowDiffusion(nn.Module):
             cond_num=dataset_params['train_params']['cond_frames'],
             pred_num=dataset_params['train_params']['pred_frames'],
             framesize=int(dataset_params['frame_shape']*flow_params['region_predictor_params']['scale_factor']),
-            l=diffusion_params['ada_layers'] if diffusion_params['ada_layers']!='auto' else None,
         )
 
         self.diffusion = GaussianDiffusion(
