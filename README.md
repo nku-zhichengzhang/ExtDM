@@ -135,7 +135,9 @@ MAKE SURE YOU HAVE ~20GB SPACE! 6.5GB for the zip file, and 8GB for the unzipped
 
 ### 🪄 4.1 AE Checkpoints
 
+```
 TODO
+```
 
 ### 🪄 4.2 DM Checkpoints
 
