@@ -43,7 +43,7 @@
 conda create -n ExtDM python=3.9
 conda activate ExtDM
 pip install torch==1.13.1+cu116 torchvision==0.14.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
-pip install einops einops_exts rotary_embedding_torch timm==0.4.5 imageio scikit-image opencv-python flow_vis matplotlib mediapy lpips h5py PyYAML tqdm wandb scipy==1.9.3
+pip install einops einops_exts rotary_embedding_torch==rotary-embedding-torch timm==0.4.5 imageio scikit-image opencv-python flow_vis matplotlib mediapy lpips h5py PyYAML tqdm wandb scipy==1.9.3
 conda install ffmpeg
 cd <your_path>/ExtDM
 pip install -e .
@@ -133,24 +133,33 @@ MAKE SURE YOU HAVE ~20GB SPACE! 6.5GB for the zip file, and 8GB for the unzipped
 
 ## 🧊 4. Checkpoints
 
+DM Arch.
+
+- A = VideoFlowDiffusion_multi_w_ref_u22
+
+Unet Arch.
+
+- a = DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_ada_u22
+
+
 | Dataset    | #Param (M)   | Setup (c->k) | DM Arch. | Unet Arch. | Link & Size |
-| :--------: | :----------: | ------------ | -------- | ---------- | :---------: |
-| SMMNIST    | 131.4        | 10 -> 4      |          |            | TODO (M)    |
-|            | 136.8        | 10 -> 5      |          |            | TODO (M)    |
-|            | 163.7        | 10 -> 10     |          |            | TODO (M)    |
-| KTH        | 100.3        | 10 -> 4      |          |            | TODO (M)    |
-|            | 103.0        | 10 -> 5      |          |            | TODO (M)    |
-|            | 116.6        | 10 -> 10     |          |            | TODO (M)    |
-|            | 254.2        | 10 -> 20     |          |            | TODO (M)    |
-| BAIR       | 100.1        | 2 -> 4       |          |            | TODO (M)    |
-|            | 101.7        | 2 -> 5       |          |            | TODO (M)    |
-|            | 103.2        | 2 -> 7       |          |            | TODO (M)    |
-|            | 132.1        | 2 -> 10      |          |            | TODO (M)    |
-| Cityscapes | 112.0        | 2 -> 4       |          |            | TODO (M)    |
-|            | 113.7        | 2 -> 5       |          |            | TODO (M)    |
-|            | 117.2        | 2 -> 7       |          |            | TODO (M)    |
-|            | 153.6        | 2 -> 10      |          |            | TODO (M)    |
-| UCF-101    | -            | 4 -> 8       |          |            | TODO (M)    |
+| :--------: | :----------: | ------------ | :------: | :--------: | :---------: |
+| SMMNIST    | 131.4        | 10 -> 4      |          |            | TODO (M)            |
+|            | 136.8        | 10 -> 5      |          |            | TODO (M)            |
+|            | 163.7        | 10 -> 10     |          |            | TODO (M)            |
+| KTH        | 100.3        | 10 -> 4      |          |            | TODO (M)            |
+|            | 103.0        | 10 -> 5      |          |            | TODO (M)            |
+|            | 116.6        | 10 -> 10     |          |            | TODO (M)            |
+|            | 254.2        | 10 -> 20     |          |            | TODO (M)            |
+| BAIR       | 100.1        | 2 -> 4       |          |            | TODO (M)            |
+|            | 101.7        | 2 -> 5       |  A       |  a         | [Baidu](https://pan.baidu.com/s/1-3LOD6O746hJ5vZ6_T_2xA?pwd=nkcv) (545M)    |
+|            | 103.2        | 2 -> 7       |          |            | TODO (M)            |
+|            | 132.1        | 2 -> 10      |          |            | TODO (M)            |
+| Cityscapes | 112.0        | 2 -> 4       |          |            | TODO (M)            |
+|            | 113.7        | 2 -> 5       |          |            | TODO (M)            |
+|            | 117.2        | 2 -> 7       |          |            | TODO (M)            |
+|            | 153.6        | 2 -> 10      |          |            | TODO (M)            |
+| UCF-101    | -            | 4 -> 8       |          |            | TODO (M)            |
 
 ## 🔬 5. Training & Inference
 
