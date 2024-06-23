@@ -133,6 +133,12 @@ MAKE SURE YOU HAVE ~20GB SPACE! 6.5GB for the zip file, and 8GB for the unzipped
 
 ## 🧊 4. Checkpoints
 
+### 🪄 4.1 AE Checkpoints
+
+TODO
+
+### 🪄 4.2 DM Checkpoints
+
 DM Arch.
 
 - A = VideoFlowDiffusion_multi_w_ref_u22
@@ -163,7 +169,7 @@ Unet Arch.
 
 ## 🔬 5. Training & Inference
 
-### 🔮 5.1: AutoEncoder Training & Inference
+### 🔮 5.1: AE Training & Inference
 
 **AE Training**
 
