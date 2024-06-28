@@ -141,33 +141,9 @@ TODO
 
 ### 🪄 4.2 DM Checkpoints
 
-DM Arch.
-
-- A = VideoFlowDiffusion_multi_w_ref_u22
-
-Unet Arch.
-
-- a = DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_ada_u22
-
-
-| Dataset    | #Param (M)   | Setup (c->k) | DM Arch. | Unet Arch. | Link & Size |
-| :--------: | :----------: | ------------ | :------: | :--------: | :---------: |
-| SMMNIST    | 131.4        | 10 -> 4      |          |            | TODO (M)            |
-|            | 136.8        | 10 -> 5      |          |            | TODO (M)            |
-|            | 163.7        | 10 -> 10     |          |            | TODO (M)            |
-| KTH        | 100.3        | 10 -> 4      |          |            | TODO (M)            |
-|            | 103.0        | 10 -> 5      |          |            | TODO (M)            |
-|            | 116.6        | 10 -> 10     |          |            | TODO (M)            |
-|            | 254.2        | 10 -> 20     |          |            | TODO (M)            |
-| BAIR       | 100.1        | 2 -> 4       |          |            | TODO (M)            |
-|            | 101.7        | 2 -> 5       |  A       |  a         | [Baidu](https://pan.baidu.com/s/1-3LOD6O746hJ5vZ6_T_2xA?pwd=nkcv) (545M)    |
-|            | 103.2        | 2 -> 7       |          |            | TODO (M)            |
-|            | 132.1        | 2 -> 10      |          |            | TODO (M)            |
-| Cityscapes | 112.0        | 2 -> 4       |          |            | TODO (M)            |
-|            | 113.7        | 2 -> 5       |          |            | TODO (M)            |
-|            | 117.2        | 2 -> 7       |          |            | TODO (M)            |
-|            | 153.6        | 2 -> 10      |          |            | TODO (M)            |
-| UCF-101    | -            | 4 -> 8       |          |            | TODO (M)            |
+```
+TODO
+```
 
 ## 🔬 5. Training & Inference
 
