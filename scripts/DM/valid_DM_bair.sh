@@ -21,7 +21,7 @@ Unet3D_architecture=DenoiseNet_STWAtt_w_w_ref_adaptor_cross_multi_traj_u12
 DM_NAME=bair64_DM_Batch64_lr2e-4_c2p4_STW_adaptor_scale0.50_multi_traj
 DM_STEP=flowdiff_best_73000_315.362
 SEED=1000
-NUM_SAMPLE=1
+NUM_SAMPLE=100
 NUM_BATCH_SIZE=128
 ########################################
 
