@@ -30,7 +30,7 @@ AE_STEP=RegionMM_0128_S150000
 DM_NAME=cityscapes128_DM_Batch40_lr1.5e-4_c2p5_STW_adaptor_scale0.25_multi_traj_ada
 DM_STEP=flowdiff_best_33000_181.577
 SEED=1000
-NUM_SAMPLE=1
+NUM_SAMPLE=100
 NUM_BATCH_SIZE=128
 ########################################
 
