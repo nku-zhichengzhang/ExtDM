@@ -76,9 +76,9 @@ flow_params:
     valid_batch_size: 256
     dataloader_workers: 8
     print_freq: 100
-    save_img_freq: 5000
-    update_ckpt_freq: 5000
-    save_ckpt_freq: 5000
+    save_img_freq: 1000
+    update_ckpt_freq: 1000
+    save_ckpt_freq: 1000
     scales: [1, 0.5, 0.25]
     transform_params:
       sigma_affine: 0.05

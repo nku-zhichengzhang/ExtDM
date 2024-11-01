@@ -33,7 +33,7 @@ dataset_params:
 
 flow_params:
   model_params:
-    num_regions: 10
+    num_regions: 20
     num_channels: 3
     estimate_affine: True
     revert_axis_swap: True
@@ -76,9 +76,9 @@ flow_params:
     valid_batch_size: 256
     dataloader_workers: 8
     print_freq: 500
-    save_img_freq: 2500
-    update_ckpt_freq: 2500
-    save_ckpt_freq: 5000
+    save_img_freq: 1000
+    update_ckpt_freq: 1000
+    save_ckpt_freq: 1000
     scales: [1, 0.5, 0.25]
     transform_params:
       sigma_affine: 0.05
