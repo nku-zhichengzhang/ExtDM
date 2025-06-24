@@ -135,15 +135,25 @@ MAKE SURE YOU HAVE ~20GB SPACE! 6.5GB for the zip file, and 8GB for the unzipped
 
 ### 🪄 4.1 AE Checkpoints
 
-```
-TODO
-```
+| Dataset    | Link & Size|
+| ---------- | ------------------------------------------------------------ |
+| SMMNIST    | TBD |
+| KTH        | [google drive](https://drive.google.com/file/d/1IBFXAhwmXzpZDNmz6nI2Qv0-jQEmutI6/view?usp=sharing) |
+| BAIR       | TBD |
+| Cityscapes | TBD |
+| UCF-101    | [google drive](https://drive.google.com/file/d/1RRBrbpgeIpqnuuUJd27cd9qhwYNBZzdD/view?usp=sharing) |
+
 
 ### 🪄 4.2 DM Checkpoints
 
-```
-TODO
-```
+| Dataset    | Link & Size|
+| ---------- | ------------------------------------------------------------ |
+| SMMNIST    | TBD |
+| KTH        | [google drive](https://drive.google.com/file/d/1HEQsjCnaRaWiFT3obxbjZ-Idh8duERGK/view?usp=sharing) |
+| BAIR       | TBD |
+| Cityscapes | TBD |
+| UCF-101    | [google drive](https://drive.google.com/file/d/1NjKWc4v0pLL4NDzZPOJSGcfRwT4lxg5N/view?usp=sharing) |
+
 
 ## 🔬 5. Training & Inference
 
